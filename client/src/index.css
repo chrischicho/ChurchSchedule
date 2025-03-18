@@ -14,5 +14,5 @@
 
 /* Make switch animation snappier */
 .switch-transition {
-  transition-duration: 150ms !important;
+  transition-duration: 500ms !important;
 }
