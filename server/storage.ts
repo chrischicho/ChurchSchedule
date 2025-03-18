@@ -69,18 +69,51 @@ export class MemStorage implements IStorage {
   }
 
   async setAvailability(data: InsertAvailability): Promise<Availability> {
-    const id = this.currentId++;
-    const availability: Availability = {
-      ...data,
-      id,
-      lastUpdated: new Date()
-    };
-    this.availability.set(id, availability);
-    return availability;
+    // Find existing availability for this user and date
+    const existingAvailability = Array.from(this.availability.values()).find(
+      (a) => 
+        a.userId === data.userId && 
+        a.serviceDate.toISOString().split('T')[0] === new Date(data.serviceDate).toISOString().split('T')[0]
+    );
+
+    if (existingAvailability) {
+      // Update existing availability
+      const updated = {
+        ...existingAvailability,
+        isAvailable: data.isAvailable,
+        lastUpdated: new Date()
+      };
+      this.availability.set(existingAvailability.id, updated);
+      return updated;
+    } else {
+      // Create new availability
+      const id = this.currentId++;
+      const availability: Availability = {
+        ...data,
+        id,
+        lastUpdated: new Date()
+      };
+      this.availability.set(id, availability);
+      return availability;
+    }
   }
 
   async getAvailability(): Promise<Availability[]> {
-    return Array.from(this.availability.values());
+    const allAvailabilities = Array.from(this.availability.values());
+
+    // Create a map to store the latest availability for each user and date
+    const latestAvailabilities = new Map<string, Availability>();
+
+    allAvailabilities.forEach(availability => {
+      const key = `${availability.userId}-${availability.serviceDate}`;
+      const existing = latestAvailabilities.get(key);
+
+      if (!existing || existing.lastUpdated < availability.lastUpdated) {
+        latestAvailabilities.set(key, availability);
+      }
+    });
+
+    return Array.from(latestAvailabilities.values());
   }
 
   async getAllUsers(): Promise<User[]> {
