@@ -26,8 +26,7 @@ export const settings = pgTable("settings", {
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({ 
-  id: true,
-  firstLogin: true 
+  id: true 
 });
 
 export const insertAvailabilitySchema = createInsertSchema(availability).omit({
