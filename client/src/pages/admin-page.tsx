@@ -46,7 +46,9 @@ export default function AdminPage() {
       return res.json();
     },
     onSuccess: () => {
+      // Invalidate both the admin members list and the users list for login
       queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       setFirstName("");
       setLastName("");
       toast({
@@ -68,7 +70,9 @@ export default function AdminPage() {
       await apiRequest("DELETE", `/api/admin/members/${userId}`);
     },
     onSuccess: () => {
+      // Invalidate both the admin members list and the users list for login
       queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       toast({
         title: "Success",
         description: "Member removed successfully",
