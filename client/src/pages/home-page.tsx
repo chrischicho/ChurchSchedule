@@ -112,6 +112,7 @@ export default function HomePage() {
                         isAvailable: checked,
                       })
                     }
+                    className="switch-transition"
                   />
                 </CardContent>
               </Card>

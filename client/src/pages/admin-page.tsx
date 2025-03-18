@@ -8,6 +8,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
@@ -21,6 +31,7 @@ export default function AdminPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [nameFormat, setNameFormat] = useState("full");
+  const [memberToDelete, setMemberToDelete] = useState<User | null>(null);
 
   // Redirect if not admin
   if (!user?.isAdmin) {
@@ -87,17 +98,23 @@ export default function AdminPage() {
     },
   });
 
-  const handleCreateMember = () => {
-    if (!firstName || !lastName) {
+  const handleDeleteMember = (member: User) => {
+    if (member.id === user.id) {
       toast({
         title: "Error",
-        description: "Please fill in all fields",
+        description: "You cannot delete your own account",
         variant: "destructive",
       });
       return;
     }
+    setMemberToDelete(member);
+  };
 
-    createMemberMutation.mutate({ firstName, lastName });
+  const confirmDelete = () => {
+    if (memberToDelete) {
+      deleteMemberMutation.mutate(memberToDelete.id);
+      setMemberToDelete(null);
+    }
   };
 
   const { data: formatData } = useQuery<{ format: string }>({
@@ -224,17 +241,7 @@ export default function AdminPage() {
                             variant="outline"
                             size="sm"
                             className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                            onClick={() => {
-                              if (member.id === user.id) {
-                                toast({
-                                  title: "Error",
-                                  description: "You cannot delete your own account",
-                                  variant: "destructive",
-                                });
-                                return;
-                              }
-                              deleteMemberMutation.mutate(member.id);
-                            }}
+                            onClick={() => handleDeleteMember(member)}
                             disabled={deleteMemberMutation.isPending || member.id === user.id}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -249,6 +256,21 @@ export default function AdminPage() {
           </Card>
         </div>
       </main>
+
+      <AlertDialog open={!!memberToDelete} onOpenChange={setMemberToDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove the member and all of their availability records. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
