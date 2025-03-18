@@ -11,3 +11,8 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+/* Make switch animation snappier */
+.switch-transition {
+  transition-duration: 150ms !important;
+}
