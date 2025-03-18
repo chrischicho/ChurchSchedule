@@ -17,7 +17,7 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
-  
+
   const {
     data: user,
     error,
@@ -35,10 +35,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onSuccess: (user: User) => {
       queryClient.setQueryData(["/api/user"], user);
     },
-    onError: (error: Error) => {
+    onError: () => {
       toast({
         title: "Login failed",
-        description: error.message,
+        description: "You put the wrong PIN",
         variant: "destructive",
       });
     },

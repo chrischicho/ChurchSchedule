@@ -42,7 +42,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         firstName: req.body.firstName,
         lastName: req.body.lastName,
         pin: "000000",
-        isAdmin: false
+        isAdmin: false,
+        firstLogin: true
       });
       res.status(201).json(user);
     } catch (err) {
