@@ -19,6 +19,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin routes
+  app.get("/api/admin/members", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user.isAdmin) {
+      return res.sendStatus(403);
+    }
+
+    try {
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch members" });
+    }
+  });
+
   app.post("/api/admin/members", async (req, res) => {
     if (!req.isAuthenticated() || !req.user.isAdmin) {
       return res.sendStatus(403);
@@ -37,20 +50,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/admin/reset-pin/:id", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user.isAdmin) {
-      return res.sendStatus(403);
-    }
-
-    try {
-      const user = await storage.updateUserPin(parseInt(req.params.id), "000000");
-      res.json(user);
-    } catch (err) {
-      res.status(500).json({ message: "Failed to reset PIN" });
-    }
-  });
-
-  // Add the delete route after the existing admin routes
   app.delete("/api/admin/members/:id", async (req, res) => {
     if (!req.isAuthenticated() || !req.user.isAdmin) {
       return res.sendStatus(403);
@@ -94,7 +93,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to update name format" });
     }
   });
-
 
   // Availability routes
   app.post("/api/availability", async (req, res) => {

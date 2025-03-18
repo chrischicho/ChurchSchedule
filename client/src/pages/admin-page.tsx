@@ -54,6 +54,13 @@ export default function AdminPage() {
         description: "Member added successfully",
       });
     },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const deleteMemberMutation = useMutation({
