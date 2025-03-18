@@ -29,10 +29,6 @@ export default function HomePage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/availability"] });
-      toast({
-        title: "Success",
-        description: "Availability updated",
-      });
     },
     onError: (error: Error) => {
       toast({

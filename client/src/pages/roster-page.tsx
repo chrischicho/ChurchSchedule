@@ -10,15 +10,21 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { format } from "date-fns";
-import { Availability } from "@shared/schema";
+import { Availability, User } from "@shared/schema";
 import { Loader2 } from "lucide-react";
 
 export default function RosterPage() {
   const [selectedDate, setSelectedDate] = useState<string | "all">("all");
 
-  const { data: availabilities, isLoading } = useQuery<Availability[]>({
+  const { data: availabilities, isLoading: isLoadingAvailability } = useQuery<Availability[]>({
     queryKey: ["/api/availability"],
   });
+
+  const { data: users, isLoading: isLoadingUsers } = useQuery<User[]>({
+    queryKey: ["/api/users"],
+  });
+
+  const isLoading = isLoadingAvailability || isLoadingUsers;
 
   if (isLoading) {
     return (
@@ -43,6 +49,11 @@ export default function RosterPage() {
           (a) =>
             format(new Date(a.serviceDate), "yyyy-MM-dd") === selectedDate
         );
+
+  const getUserName = (userId: number) => {
+    const user = users?.find(u => u.id === userId);
+    return user ? `${user.firstName} ${user.lastName}` : `User ${userId}`;
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -84,8 +95,7 @@ export default function RosterPage() {
                     )}
                   </TableCell>
                   <TableCell>
-                    {/* User name will be populated from join query */}
-                    User {availability.userId}
+                    {getUserName(availability.userId)}
                   </TableCell>
                   <TableCell>
                     {availability.isAvailable ? "Available" : "Unavailable"}
