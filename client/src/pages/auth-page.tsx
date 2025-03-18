@@ -95,9 +95,8 @@ export default function AuthPage() {
     }
 
     try {
-      await login(selectedId, pin);
-      const selectedUser = users?.find(u => u.id === selectedId);
-      if (selectedUser?.firstLogin) {
+      const loginResponse = await login(selectedId, pin);
+      if (loginResponse?.firstLogin) {
         setShowPinDialog(true);
       } else {
         setLocation("/");
