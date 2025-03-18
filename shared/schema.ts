@@ -36,8 +36,8 @@ export const insertAvailabilitySchema = createInsertSchema(availability).omit({
 });
 
 export const updatePinSchema = z.object({
-  currentPin: z.string().length(6),
-  newPin: z.string().length(6)
+  currentPin: z.string().regex(/^\d{4,6}$/, "PIN must be 4-6 digits"),
+  newPin: z.string().regex(/^\d{4,6}$/, "PIN must be 4-6 digits")
 });
 
 export const nameFormatSchema = z.enum(['full', 'first', 'last', 'initials']);
