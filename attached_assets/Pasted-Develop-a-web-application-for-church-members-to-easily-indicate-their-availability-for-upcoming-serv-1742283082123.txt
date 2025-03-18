@@ -1,0 +1,82 @@
+Develop a web application for church members to easily indicate their availability for upcoming service dates. The app should feel like a native mobile app with a clean, modern design. It uses a Node.js backend (with Express) and a React frontend, storing all data in a simple JSON file (suitable for up to 30 users). Users log in using their name (preloaded by an admin) and a 6-digit PIN. On first login (default PIN "000000"), they are prompted to change their PIN. The app displays upcoming Sundays (defaulting to the following month) so users can toggle their availability, which they can save—provided they do so before an admin-set deadline (defaulting to the 20th of the month). Additionally, users can view a roster with filtering/sorting options. Admin functions include adding members, resetting PINs, setting deadlines, overriding availability, and emailing a roster PDF.
+
+Technical Requirements:
+
+1. Authentication & PIN Management:
+
+Sign In Screen:
+• Member selects their name from a preloaded list.
+• Enters a 6-digit PIN.
+
+On first login (PIN equals "000000"), force a PIN change.
+
+Use session management for authentication.
+
+
+
+2. Availability Input:
+
+Display a clean list/calendar view of upcoming Sundays (default next month).
+
+Each date shows a toggle or checkbox labeled “I am available.”
+
+A prominent “Save Availability” button saves changes.
+
+Disallow edits after the admin-defined deadline.
+
+
+
+3. Roster View:
+
+Display a roster showing all members’ availability.
+
+Include filtering (e.g., by week) and sorting (by date) features.
+
+
+
+4. Admin Functions (accessible via a dedicated admin panel):
+
+Add new members (automatically assigned default PIN "000000").
+
+Reset member PINs.
+
+Set/change the availability editing deadline.
+
+Override member availability if needed.
+
+(Optional/MVP) Send the current roster via email as a generated PDF.
+
+
+
+5. UI/UX & Design:
+
+Splash Screen:
+• Simple splash with a modern logo and “El Gibbor AvailEase” title.
+
+Home Screen:
+• Top Navigation Bar: Hamburger menu (left), app title “AvailEase” (center), profile icon (right).
+• Main content: A list view showing upcoming Sundays with toggles/checkboxes for availability.
+• Fixed “Save Availability” button near the bottom.
+
+Bottom Navigation Bar:
+• Icons for Home, Roster, and Settings.
+
+Use a modern, sophisticated color palette with rounded buttons and subtle animations.
+
+Follow Apple’s SwiftUI design best practices for clarity, accessibility, and an intuitive experience.
+
+
+
+6. Data Storage:
+
+Use a JSON file (e.g., data.json) to store user details (first name, last name, PIN, availability status per date), admin settings (deadline date), and other necessary data.
+
+
+
+7. Error Handling:
+
+Validate PIN input (ensure 6 digits).
+
+Show clear error messages for invalid login or if attempting to edit after the deadline.
+
+Ensure smooth transitions and fallback messages where needed.
