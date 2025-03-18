@@ -62,6 +62,10 @@ export default function AuthPage() {
       await changePin(pinData);
       setShowPinDialog(false);
       setLocation("/");
+      toast({
+        title: "Success",
+        description: "Your PIN has been changed successfully",
+      });
     } catch (error) {
       toast({
         title: "Error",
@@ -162,7 +166,7 @@ export default function AuthPage() {
         </div>
       </div>
 
-      <Dialog open={showPinDialog} onOpenChange={setShowPinDialog}>
+      <Dialog open={showPinDialog} onOpenChange={() => {}}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Change Your PIN</DialogTitle>
