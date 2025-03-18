@@ -18,6 +18,28 @@ export class MemStorage implements IStorage {
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000
     });
+
+    // Initialize with test users
+    this.createUser({
+      firstName: "John",
+      lastName: "Smith",
+      pin: "000000",
+      isAdmin: true
+    });
+
+    this.createUser({
+      firstName: "Sarah",
+      lastName: "Brown",
+      pin: "000000",
+      isAdmin: false
+    });
+
+    this.createUser({
+      firstName: "Michael",
+      lastName: "Johnson",
+      pin: "000000",
+      isAdmin: false
+    });
   }
 
   async getUser(id: number): Promise<User | undefined> {
@@ -40,7 +62,7 @@ export class MemStorage implements IStorage {
   async updateUserPin(id: number, pin: string): Promise<User> {
     const user = await this.getUser(id);
     if (!user) throw new Error("User not found");
-    
+
     const updatedUser = { ...user, pin, firstLogin: false };
     this.users.set(id, updatedUser);
     return updatedUser;
@@ -59,6 +81,10 @@ export class MemStorage implements IStorage {
 
   async getAvailability(): Promise<Availability[]> {
     return Array.from(this.availability.values());
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return Array.from(this.users.values());
   }
 }
 
