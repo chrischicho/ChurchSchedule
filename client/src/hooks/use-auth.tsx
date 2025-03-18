@@ -8,7 +8,7 @@ type AuthContextType = {
   user: User | null;
   isLoading: boolean;
   error: Error | null;
-  login: (id: number, pin: string) => Promise<void>;
+  login: (id: number, pin: string) => Promise<User>;
   logout: () => Promise<void>;
   changePin: (data: UpdatePin) => Promise<void>;
 };
@@ -88,7 +88,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         error,
         login: async (id, pin) => {
-          await loginMutation.mutateAsync({ id, pin });
+          const user = await loginMutation.mutateAsync({ id, pin });
+          return user;
         },
         logout: async () => {
           await logoutMutation.mutateAsync();
