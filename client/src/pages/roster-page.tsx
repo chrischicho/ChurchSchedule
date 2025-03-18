@@ -25,6 +25,10 @@ export default function RosterPage() {
     queryKey: ["/api/users"],
   });
 
+  const { data: nameFormat } = useQuery<{ format: string }>({
+    queryKey: ["/api/admin/name-format"],
+  });
+
   const isLoading = isLoadingAvailability || isLoadingUsers;
 
   if (isLoading) {
@@ -40,6 +44,20 @@ export default function RosterPage() {
     start: selectedMonth,
     end: addMonths(selectedMonth, 1),
   }).filter(day => isSunday(day));
+
+  // Format user name based on admin settings
+  const formatUserName = (user: User) => {
+    switch (nameFormat?.format) {
+      case 'first':
+        return user.firstName;
+      case 'last':
+        return user.lastName;
+      case 'initials':
+        return `${user.firstName[0]}${user.lastName[0]}`;
+      default:
+        return `${user.firstName} ${user.lastName}`;
+    }
+  };
 
   // Filter availabilities for the selected month and only show available members
   const monthlyAvailabilities = availabilities?.filter(a => {
@@ -111,7 +129,7 @@ export default function RosterPage() {
                     </TableCell>
                     <TableCell>
                       {availableUsers.length > 0 
-                        ? availableUsers.map(user => `${user.firstName} ${user.lastName}`).join(", ")
+                        ? availableUsers.map(user => formatUserName(user)).join(", ")
                         : <span className="text-muted-foreground">No one available so far</span>
                       }
                     </TableCell>
