@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { format, startOfMonth, addMonths, subMonths } from "date-fns";
+import { format, startOfMonth, addMonths, eachDayOfInterval, isSunday, subMonths } from "date-fns";
 import { Availability, User } from "@shared/schema";
 import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -34,6 +34,12 @@ export default function RosterPage() {
       </div>
     );
   }
+
+  // Get all Sundays in the selected month
+  const sundays = eachDayOfInterval({
+    start: selectedMonth,
+    end: addMonths(selectedMonth, 1),
+  }).filter(day => isSunday(day));
 
   // Filter availabilities for the selected month and only show available members
   const monthlyAvailabilities = availabilities?.filter(a => {
@@ -62,10 +68,11 @@ export default function RosterPage() {
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-2xl font-bold">Service Roster</h1>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4 bg-muted px-3 py-1.5 rounded-lg">
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
+              className="h-6 w-6"
               onClick={() => setSelectedMonth(prev => startOfMonth(subMonths(prev, 1)))}
             >
               <ChevronLeft className="h-4 w-4" />
@@ -74,8 +81,9 @@ export default function RosterPage() {
               {format(selectedMonth, "MMMM yyyy")}
             </div>
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
+              className="h-6 w-6"
               onClick={() => setSelectedMonth(prev => startOfMonth(addMonths(prev, 1)))}
             >
               <ChevronRight className="h-4 w-4" />
@@ -92,18 +100,24 @@ export default function RosterPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {Object.entries(groupedAvailabilities)
-                .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
-                .map(([date, users]) => (
+              {sundays.map((sunday) => {
+                const date = format(sunday, "yyyy-MM-dd");
+                const availableUsers = groupedAvailabilities[date] || [];
+
+                return (
                   <TableRow key={date}>
                     <TableCell>
-                      {format(new Date(date), "MMMM d, yyyy")}
+                      {format(sunday, "MMMM d, yyyy")}
                     </TableCell>
                     <TableCell>
-                      {users.map(user => `${user.firstName} ${user.lastName}`).join(", ")}
+                      {availableUsers.length > 0 
+                        ? availableUsers.map(user => `${user.firstName} ${user.lastName}`).join(", ")
+                        : <span className="text-muted-foreground">No one available so far</span>
+                      }
                     </TableCell>
                   </TableRow>
-                ))}
+                );
+              })}
             </TableBody>
           </Table>
         </div>

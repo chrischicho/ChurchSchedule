@@ -48,6 +48,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add these routes after the existing admin routes
+  app.get("/api/admin/name-format", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user.isAdmin) {
+      return res.sendStatus(403);
+    }
+
+    try {
+      const format = storage.getNameFormat();
+      res.json({ format });
+    } catch (err) {
+      res.status(500).json({ message: "Failed to get name format" });
+    }
+  });
+
+  app.post("/api/admin/name-format", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user.isAdmin) {
+      return res.sendStatus(403);
+    }
+
+    try {
+      const format = await storage.setNameFormat(req.body.format);
+      res.json({ format });
+    } catch (err) {
+      res.status(500).json({ message: "Failed to update name format" });
+    }
+  });
+
+
   // Availability routes
   app.post("/api/availability", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);

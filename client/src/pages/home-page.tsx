@@ -61,10 +61,11 @@ export default function HomePage() {
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-2xl font-bold">My Availability</h1>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4 bg-muted px-3 py-1.5 rounded-lg">
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
+              className="h-6 w-6"
               onClick={() => setSelectedMonth(prev => startOfMonth(subMonths(prev, 1)))}
             >
               <ChevronLeft className="h-4 w-4" />
@@ -73,8 +74,9 @@ export default function HomePage() {
               {format(selectedMonth, "MMMM yyyy")}
             </div>
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
+              className="h-6 w-6"
               onClick={() => setSelectedMonth(prev => startOfMonth(addMonths(prev, 1)))}
             >
               <ChevronRight className="h-4 w-4" />

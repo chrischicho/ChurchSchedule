@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { NavBar } from "@/components/nav-bar";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ export default function AdminPage() {
   const { toast } = useToast();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [nameFormat, setNameFormat] = useState("full");
 
   // Redirect if not admin
   if (!user?.isAdmin) {
@@ -84,6 +85,31 @@ export default function AdminPage() {
     createMemberMutation.mutate({ firstName, lastName });
   };
 
+  const { data: formatData } = useQuery<{ format: string }>({
+    queryKey: ["/api/admin/name-format"],
+  });
+
+  useEffect(() => {
+    if (formatData) {
+      setNameFormat(formatData.format);
+    }
+  }, [formatData]);
+
+  const updateNameFormatMutation = useMutation({
+    mutationFn: async (data: { format: string }) => {
+      const res = await apiRequest("POST", "/api/admin/name-format", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/name-format"] });
+      toast({
+        title: "Success",
+        description: "Name format updated",
+      });
+    },
+  });
+
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -127,6 +153,32 @@ export default function AdminPage() {
                   "Add Member"
                 )}
               </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Display Settings</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium">Name Display Format</label>
+                  <select
+                    className="w-full mt-1 border rounded-md h-10 px-3"
+                    value={nameFormat}
+                    onChange={(e) => {
+                      setNameFormat(e.target.value);
+                      updateNameFormatMutation.mutate({ format: e.target.value });
+                    }}
+                  >
+                    <option value="full">Full Name (John Smith)</option>
+                    <option value="first">First Name Only (John)</option>
+                    <option value="last">Last Name Only (Smith)</option>
+                    <option value="initials">Initials (JS)</option>
+                  </select>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
