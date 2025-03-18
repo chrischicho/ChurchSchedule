@@ -80,7 +80,11 @@ export function setupAuth(app: Express) {
       }
 
       const updatedUser = await storage.updateUserPin(user.id, newPin);
-      res.json(updatedUser);
+      // After successful PIN change, update the session
+      req.login(updatedUser, (err) => {
+        if (err) return res.status(500).json({ message: "Failed to update session" });
+        res.json(updatedUser);
+      });
     } catch (err) {
       if (err instanceof ZodError) {
         res.status(400).json({ message: "PIN must be 4-6 digits" });
