@@ -10,6 +10,7 @@ export class MemStorage implements IStorage {
   private availability: Map<number, Availability>;
   private currentId: number;
   sessionStore: session.Store;
+  private nameFormat: string = 'full';
 
   constructor() {
     this.users = new Map();
@@ -120,6 +121,28 @@ export class MemStorage implements IStorage {
 
   async getAllUsers(): Promise<User[]> {
     return Array.from(this.users.values());
+  }
+
+  getNameFormat(): string {
+    return this.nameFormat;
+  }
+
+  async setNameFormat(format: string): Promise<string> {
+    this.nameFormat = format;
+    return format;
+  }
+
+  formatUserName(user: User): string {
+    switch (this.nameFormat) {
+      case 'first':
+        return user.firstName;
+      case 'last':
+        return user.lastName;
+      case 'initials':
+        return `${user.firstName[0]}${user.lastName[0]}`;
+      default:
+        return `${user.firstName} ${user.lastName}`;
+    }
   }
 }
 

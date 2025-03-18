@@ -22,6 +22,7 @@ export const availability = pgTable("availability", {
 export const settings = pgTable("settings", {
   id: serial("id").primaryKey(),
   deadlineDay: integer("deadline_day").default(20).notNull(),
+  nameFormat: text("name_format").default("full").notNull(), // 'full' | 'first' | 'last' | 'initials'
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({ 
@@ -39,8 +40,11 @@ export const updatePinSchema = z.object({
   newPin: z.string().length(6)
 });
 
+export const nameFormatSchema = z.enum(['full', 'first', 'last', 'initials']);
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Availability = typeof availability.$inferSelect;
 export type InsertAvailability = z.infer<typeof insertAvailabilitySchema>;
 export type UpdatePin = z.infer<typeof updatePinSchema>;
+export type NameFormat = z.infer<typeof nameFormatSchema>;
