@@ -9,10 +9,12 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Availability } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function HomePage() {
   const [selectedMonth, setSelectedMonth] = useState(startOfMonth(new Date()));
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const { data: availabilities, isLoading } = useQuery<Availability[]>({
     queryKey: ["/api/availability"],
@@ -23,7 +25,7 @@ export default function HomePage() {
       const res = await apiRequest("POST", "/api/availability", {
         serviceDate: data.serviceDate,
         isAvailable: data.isAvailable,
-        userId: 1, // We'll get this from the auth context
+        userId: user?.id,
       });
       return res.json();
     },
@@ -73,7 +75,8 @@ export default function HomePage() {
             const availability = availabilities?.find(
               (a) =>
                 format(new Date(a.serviceDate), "yyyy-MM-dd") ===
-                format(sunday, "yyyy-MM-dd")
+                format(sunday, "yyyy-MM-dd") &&
+                a.userId === user?.id
             );
 
             return (
