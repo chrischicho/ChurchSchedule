@@ -19,10 +19,11 @@ export default function HomePage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async (data: { serviceDate: Date; isAvailable: boolean }) => {
+    mutationFn: async (data: { serviceDate: string; isAvailable: boolean }) => {
       const res = await apiRequest("POST", "/api/availability", {
         serviceDate: data.serviceDate,
         isAvailable: data.isAvailable,
+        userId: 1, // We'll get this from the auth context
       });
       return res.json();
     },
@@ -31,6 +32,13 @@ export default function HomePage() {
       toast({
         title: "Success",
         description: "Availability updated",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
       });
     },
   });
@@ -87,7 +95,7 @@ export default function HomePage() {
                     checked={availability?.isAvailable ?? false}
                     onCheckedChange={(checked) =>
                       updateMutation.mutate({
-                        serviceDate: sunday,
+                        serviceDate: format(sunday, "yyyy-MM-dd"),
                         isAvailable: checked,
                       })
                     }
