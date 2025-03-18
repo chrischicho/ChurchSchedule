@@ -8,7 +8,7 @@ import { format, startOfMonth, addMonths, eachDayOfInterval, isSunday, subMonths
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Availability } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function HomePage() {
@@ -59,65 +59,77 @@ export default function HomePage() {
     <div className="min-h-screen flex flex-col">
       <NavBar />
       <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-bold">My Availability</h1>
-          <div className="flex items-center gap-4 bg-muted px-3 py-1.5 rounded-lg">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6"
-              onClick={() => setSelectedMonth(prev => startOfMonth(subMonths(prev, 1)))}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <div className="min-w-[120px] text-center font-medium">
-              {format(selectedMonth, "MMMM yyyy")}
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6"
-              onClick={() => setSelectedMonth(prev => startOfMonth(addMonths(prev, 1)))}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+        <div className="max-w-2xl mx-auto">
+          <div className="mb-8 text-center">
+            <h2 className="text-2xl font-medium text-muted-foreground mb-2">Welcome</h2>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              {user?.firstName} {user?.lastName}
+            </h1>
           </div>
-        </div>
 
-        <div className="grid gap-4">
-          {sundays.map((sunday) => {
-            const availability = availabilities?.find(
-              (a) =>
-                format(new Date(a.serviceDate), "yyyy-MM-dd") ===
-                format(sunday, "yyyy-MM-dd") &&
-                a.userId === user?.id
-            );
+          <div className="flex justify-between items-center mb-8">
+            <h3 className="text-lg font-medium flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-primary" />
+              My Availability
+            </h3>
+            <div className="flex items-center gap-4 bg-muted px-3 py-1.5 rounded-lg">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={() => setSelectedMonth(prev => startOfMonth(subMonths(prev, 1)))}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <div className="min-w-[120px] text-center font-medium">
+                {format(selectedMonth, "MMMM yyyy")}
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={() => setSelectedMonth(prev => startOfMonth(addMonths(prev, 1)))}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
 
-            return (
-              <Card key={sunday.toISOString()}>
-                <CardContent className="flex items-center justify-between p-6">
-                  <div>
-                    <h3 className="font-medium">
-                      {format(sunday, "MMMM d, yyyy")}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      Sunday Service
-                    </p>
-                  </div>
-                  <Switch
-                    checked={availability?.isAvailable ?? false}
-                    onCheckedChange={(checked) =>
-                      updateMutation.mutate({
-                        serviceDate: format(sunday, "yyyy-MM-dd"),
-                        isAvailable: checked,
-                      })
-                    }
-                    className="switch-transition"
-                  />
-                </CardContent>
-              </Card>
-            );
-          })}
+          <div className="grid gap-4">
+            {sundays.map((sunday) => {
+              const availability = availabilities?.find(
+                (a) =>
+                  format(new Date(a.serviceDate), "yyyy-MM-dd") ===
+                  format(sunday, "yyyy-MM-dd") &&
+                  a.userId === user?.id
+              );
+
+              return (
+                <Card key={sunday.toISOString()}>
+                  <CardContent className="flex items-center justify-between p-6">
+                    <div>
+                      <h3 className="font-medium">
+                        {format(sunday, "MMMM d, yyyy")}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        Sunday Service
+                      </p>
+                    </div>
+                    <Switch
+                      checked={availability?.isAvailable ?? false}
+                      onCheckedChange={(checked) =>
+                        updateMutation.mutate({
+                          serviceDate: format(sunday, "yyyy-MM-dd"),
+                          isAvailable: checked,
+                        })
+                      }
+                      className="switch-transition"
+                    />
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         </div>
       </main>
     </div>
