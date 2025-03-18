@@ -141,6 +141,19 @@ export default function AdminPage() {
     },
   });
 
+  const handleCreateMember = () => {
+    if (!firstName || !lastName) {
+      toast({
+        title: "Error",
+        description: "Please fill in all fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    createMemberMutation.mutate({ firstName, lastName });
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
