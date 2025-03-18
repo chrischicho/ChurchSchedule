@@ -1,147 +1,117 @@
 import { IStorage } from "./storage.interface";
-import { User, InsertUser, Availability, InsertAvailability } from "@shared/schema";
+import { users, availability, InsertUser, User, InsertAvailability, Availability } from "@shared/schema";
+import { db } from "./db";
+import { eq, and } from "drizzle-orm";
 import session from "express-session";
-import createMemoryStore from "memorystore";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
 
-const MemoryStore = createMemoryStore(session);
+const PostgresSessionStore = connectPg(session);
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private availability: Map<number, Availability>;
-  private currentId: number;
+export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
-  private nameFormat: string = 'full';
 
   constructor() {
-    this.users = new Map();
-    this.availability = new Map();
-    this.currentId = 1;
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000
-    });
-
-    // Initialize with test users
-    this.createUser({
-      firstName: "John",
-      lastName: "Smith",
-      pin: "000000",
-      isAdmin: true
-    });
-
-    this.createUser({
-      firstName: "Sarah",
-      lastName: "Brown",
-      pin: "000000",
-      isAdmin: false
-    });
-
-    this.createUser({
-      firstName: "Michael",
-      lastName: "Johnson",
-      pin: "000000",
-      isAdmin: false
+    this.sessionStore = new PostgresSessionStore({ 
+      pool,
+      createTableIfMissing: true
     });
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async getUserByName(firstName: string, lastName: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.firstName === firstName && user.lastName === lastName
-    );
+    const [user] = await db.select().from(users).where(and(eq(users.firstName, firstName), eq(users.lastName, lastName)));
+    return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentId++;
-    const user: User = { ...insertUser, id, firstLogin: true };
-    this.users.set(id, user);
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
     return user;
   }
 
   async deleteUser(id: number): Promise<void> {
-    if (!this.users.has(id)) {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    if (!user) {
       throw new Error("User not found");
     }
+
     // Don't allow deleting the last admin
-    const remainingAdmins = Array.from(this.users.values()).filter(
-      user => user.isAdmin && user.id !== id
-    ).length;
-    if (this.users.get(id)?.isAdmin && remainingAdmins === 0) {
+    const adminCount = await db.select().from(users).where(eq(users.isAdmin, true));
+    if (user.isAdmin && adminCount.length <= 1) {
       throw new Error("Cannot delete the last admin user");
     }
-    this.users.delete(id);
-    // Also delete all availability records for this user
-    this.availability = new Map(
-      Array.from(this.availability.values())
-        .filter(a => a.userId !== id)
-        .map(a => [a.id, a])
-    );
+
+    // Delete user's availability records first
+    await db.delete(availability).where(eq(availability.userId, id));
+    // Then delete the user
+    await db.delete(users).where(eq(users.id, id));
   }
 
   async updateUserPin(id: number, pin: string): Promise<User> {
-    const user = await this.getUser(id);
+    const [user] = await db
+      .update(users)
+      .set({ pin, firstLogin: false })
+      .where(eq(users.id, id))
+      .returning();
     if (!user) throw new Error("User not found");
-
-    const updatedUser = { ...user, pin, firstLogin: false };
-    this.users.set(id, updatedUser);
-    return updatedUser;
+    return user;
   }
 
   async setAvailability(data: InsertAvailability): Promise<Availability> {
-    // Find existing availability for this user and date
-    const existingAvailability = Array.from(this.availability.values()).find(
-      (a) => 
-        a.userId === data.userId && 
-        new Date(a.serviceDate).toISOString().split('T')[0] === new Date(data.serviceDate).toISOString().split('T')[0]
-    );
+    // Convert date string to Date object for comparison
+    const dateStr = new Date(data.serviceDate).toISOString().split('T')[0];
 
-    if (existingAvailability) {
-      // Update existing availability
-      const updated = {
-        ...existingAvailability,
-        isAvailable: data.isAvailable,
-        lastUpdated: new Date()
-      };
-      this.availability.set(existingAvailability.id, updated);
+    // Find existing availability
+    const [existing] = await db
+      .select()
+      .from(availability)
+      .where(
+        and(
+          eq(availability.userId, data.userId),
+          eq(availability.serviceDate, new Date(dateStr))
+        )
+      );
+
+    if (existing) {
+      // Update existing record
+      const [updated] = await db
+        .update(availability)
+        .set({ 
+          isAvailable: data.isAvailable,
+          lastUpdated: new Date()
+        })
+        .where(eq(availability.id, existing.id))
+        .returning();
       return updated;
     } else {
-      // Create new availability
-      const id = this.currentId++;
-      const availability: Availability = {
-        id,
-        userId: data.userId,
-        serviceDate: data.serviceDate,
-        isAvailable: data.isAvailable,
-        lastUpdated: new Date()
-      };
-      this.availability.set(id, availability);
-      return availability;
+      // Insert new record
+      const [created] = await db
+        .insert(availability)
+        .values({
+          ...data,
+          lastUpdated: new Date()
+        })
+        .returning();
+      return created;
     }
   }
 
   async getAvailability(): Promise<Availability[]> {
-    const allAvailabilities = Array.from(this.availability.values());
-
-    // Create a map to store the latest availability for each user and date
-    const latestAvailabilities = new Map<string, Availability>();
-
-    allAvailabilities.forEach(availability => {
-      const key = `${availability.userId}-${availability.serviceDate}`;
-      const existing = latestAvailabilities.get(key);
-
-      if (!existing || existing.lastUpdated < availability.lastUpdated) {
-        latestAvailabilities.set(key, availability);
-      }
-    });
-
-    return Array.from(latestAvailabilities.values());
+    return db.select().from(availability);
   }
 
   async getAllUsers(): Promise<User[]> {
-    return Array.from(this.users.values());
+    return db.select().from(users);
   }
+
+  private nameFormat: string = 'full';
 
   getNameFormat(): string {
     return this.nameFormat;
@@ -151,7 +121,6 @@ export class MemStorage implements IStorage {
     this.nameFormat = format;
     return format;
   }
-
   formatUserName(user: User): string {
     switch (this.nameFormat) {
       case 'first':
@@ -166,4 +135,4 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
