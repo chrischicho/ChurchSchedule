@@ -70,11 +70,11 @@ export function setupAuth(app: Express) {
 
   app.post("/api/change-pin", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     try {
       const { currentPin, newPin } = updatePinSchema.parse(req.body);
       const user = await storage.getUser(req.user.id);
-      
+
       if (!user || user.pin !== currentPin) {
         return res.status(400).json({ message: "Current PIN is incorrect" });
       }
@@ -83,7 +83,7 @@ export function setupAuth(app: Express) {
       res.json(updatedUser);
     } catch (err) {
       if (err instanceof ZodError) {
-        res.status(400).json({ message: "PIN must be exactly 6 digits" });
+        res.status(400).json({ message: "PIN must be 4-6 digits" });
       } else {
         res.status(500).json({ message: "Failed to update PIN" });
       }
