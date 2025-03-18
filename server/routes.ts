@@ -26,8 +26,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const user = await storage.createUser({
-        ...req.body,
-        pin: "000000"
+        firstName: req.body.firstName,
+        lastName: req.body.lastName,
+        pin: "000000",
+        isAdmin: false
       });
       res.status(201).json(user);
     } catch (err) {
