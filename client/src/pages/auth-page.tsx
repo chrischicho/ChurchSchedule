@@ -6,7 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { updatePinSchema } from "@shared/schema";
+import { updatePinSchema, User } from "@shared/schema";
+import { useQuery } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function AuthPage() {
   const [, setLocation] = useLocation();
@@ -16,6 +25,10 @@ export default function AuthPage() {
   const [pin, setPin] = useState("");
   const [newPin, setNewPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
+
+  const { data: users, isLoading } = useQuery<User[]>({
+    queryKey: ["/api/users"],
+  });
 
   // Redirect if already logged in
   if (user) {
@@ -74,6 +87,14 @@ export default function AuthPage() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-border" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen grid md:grid-cols-2">
       <div className="flex items-center justify-center p-4">
@@ -86,14 +107,18 @@ export default function AuthPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Select Your Name</label>
-              <select
-                className="w-full p-2 border rounded"
-                value={selectedId || ""}
-                onChange={(e) => setSelectedId(Number(e.target.value))}
-              >
-                <option value="">Select...</option>
-                {/* User list will be populated from API */}
-              </select>
+              <Select value={selectedId?.toString()} onValueChange={(value) => setSelectedId(Number(value))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select your name" />
+                </SelectTrigger>
+                <SelectContent>
+                  {users?.map((user) => (
+                    <SelectItem key={user.id} value={user.id.toString()}>
+                      {user.firstName} {user.lastName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">PIN</label>

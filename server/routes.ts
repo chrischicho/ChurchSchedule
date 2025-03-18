@@ -8,6 +8,16 @@ import { insertAvailabilitySchema } from "@shared/schema";
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
+  // Get all users (for login dropdown)
+  app.get("/api/users", async (_req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
   // Admin routes
   app.post("/api/admin/members", async (req, res) => {
     if (!req.isAuthenticated() || !req.user.isAdmin) {
