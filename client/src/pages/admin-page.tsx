@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { User } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 
 export default function AdminPage() {
   const { user } = useAuth();
@@ -56,18 +56,22 @@ export default function AdminPage() {
     },
   });
 
-  const resetPinMutation = useMutation({
+  const deleteMemberMutation = useMutation({
     mutationFn: async (userId: number) => {
-      const res = await apiRequest(
-        "POST",
-        `/api/admin/reset-pin/${userId}`
-      );
-      return res.json();
+      await apiRequest("DELETE", `/api/admin/members/${userId}`);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
       toast({
         title: "Success",
-        description: "PIN reset to 000000",
+        description: "Member removed successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
       });
     },
   });
@@ -108,7 +112,6 @@ export default function AdminPage() {
       });
     },
   });
-
 
   if (isLoading) {
     return (
@@ -192,23 +195,38 @@ export default function AdminPage() {
                   <thead>
                     <tr className="border-b">
                       <th className="p-4 text-left">Name</th>
+                      <th className="p-4 text-left">Role</th>
                       <th className="p-4 text-left">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {users?.map((user) => (
-                      <tr key={user.id} className="border-b">
+                    {users?.map((member) => (
+                      <tr key={member.id} className="border-b">
                         <td className="p-4">
-                          {user.firstName} {user.lastName}
+                          {member.firstName} {member.lastName}
+                        </td>
+                        <td className="p-4">
+                          {member.isAdmin ? "Admin" : "Member"}
                         </td>
                         <td className="p-4">
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => resetPinMutation.mutate(user.id)}
-                            disabled={resetPinMutation.isPending}
+                            className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                            onClick={() => {
+                              if (member.id === user.id) {
+                                toast({
+                                  title: "Error",
+                                  description: "You cannot delete your own account",
+                                  variant: "destructive",
+                                });
+                                return;
+                              }
+                              deleteMemberMutation.mutate(member.id);
+                            }}
+                            disabled={deleteMemberMutation.isPending || member.id === user.id}
                           >
-                            Reset PIN
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </td>
                       </tr>
