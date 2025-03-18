@@ -9,12 +9,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { format, startOfMonth, addMonths, subMonths } from "date-fns";
 import { Availability, User } from "@shared/schema";
-import { Loader2 } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function RosterPage() {
-  const [selectedDate, setSelectedDate] = useState<string | "all">("all");
+  const [selectedMonth, setSelectedMonth] = useState(startOfMonth(new Date()));
 
   const { data: availabilities, isLoading: isLoadingAvailability } = useQuery<Availability[]>({
     queryKey: ["/api/availability"],
@@ -34,26 +35,26 @@ export default function RosterPage() {
     );
   }
 
-  const dates = Array.from(
-    new Set(
-      availabilities?.map((a) =>
-        format(new Date(a.serviceDate), "yyyy-MM-dd")
-      ) || []
-    )
-  ).sort();
+  // Filter availabilities for the selected month and only show available members
+  const monthlyAvailabilities = availabilities?.filter(a => {
+    const availabilityDate = new Date(a.serviceDate);
+    return availabilityDate.getMonth() === selectedMonth.getMonth() &&
+           availabilityDate.getFullYear() === selectedMonth.getFullYear() &&
+           a.isAvailable;
+  });
 
-  const filteredAvailabilities =
-    selectedDate === "all"
-      ? availabilities
-      : availabilities?.filter(
-          (a) =>
-            format(new Date(a.serviceDate), "yyyy-MM-dd") === selectedDate
-        );
-
-  const getUserName = (userId: number) => {
-    const user = users?.find(u => u.id === userId);
-    return user ? `${user.firstName} ${user.lastName}` : `User ${userId}`;
-  };
+  // Group availabilities by date
+  const groupedAvailabilities = monthlyAvailabilities?.reduce((groups, availability) => {
+    const date = format(new Date(availability.serviceDate), "yyyy-MM-dd");
+    if (!groups[date]) {
+      groups[date] = [];
+    }
+    const user = users?.find(u => u.id === availability.userId);
+    if (user) {
+      groups[date].push(user);
+    }
+    return groups;
+  }, {} as Record<string, User[]>) || {};
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -61,18 +62,25 @@ export default function RosterPage() {
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-2xl font-bold">Service Roster</h1>
-          <select
-            className="border rounded p-2"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-          >
-            <option value="all">All Dates</option>
-            {dates.map((date) => (
-              <option key={date} value={date}>
-                {format(new Date(date), "MMMM d, yyyy")}
-              </option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setSelectedMonth(prev => startOfMonth(subMonths(prev, 1)))}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="min-w-[120px] text-center font-medium">
+              {format(selectedMonth, "MMMM yyyy")}
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setSelectedMonth(prev => startOfMonth(addMonths(prev, 1)))}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         <div className="rounded-md border">
@@ -80,34 +88,22 @@ export default function RosterPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Date</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Last Updated</TableHead>
+                <TableHead>Available Members</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredAvailabilities?.map((availability) => (
-                <TableRow key={availability.id}>
-                  <TableCell>
-                    {format(
-                      new Date(availability.serviceDate),
-                      "MMMM d, yyyy"
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {getUserName(availability.userId)}
-                  </TableCell>
-                  <TableCell>
-                    {availability.isAvailable ? "Available" : "Unavailable"}
-                  </TableCell>
-                  <TableCell>
-                    {format(
-                      new Date(availability.lastUpdated),
-                      "MMM d, h:mm a"
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
+              {Object.entries(groupedAvailabilities)
+                .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+                .map(([date, users]) => (
+                  <TableRow key={date}>
+                    <TableCell>
+                      {format(new Date(date), "MMMM d, yyyy")}
+                    </TableCell>
+                    <TableCell>
+                      {users.map(user => `${user.firstName} ${user.lastName}`).join(", ")}
+                    </TableCell>
+                  </TableRow>
+                ))}
             </TableBody>
           </Table>
         </div>

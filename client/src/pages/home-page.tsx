@@ -4,11 +4,11 @@ import { NavBar } from "@/components/nav-bar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { format, startOfMonth, addMonths, eachDayOfInterval, isSunday } from "date-fns";
+import { format, startOfMonth, addMonths, eachDayOfInterval, isSunday, subMonths } from "date-fns";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Availability } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function HomePage() {
@@ -61,13 +61,25 @@ export default function HomePage() {
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-2xl font-bold">My Availability</h1>
-          <Button
-            onClick={() =>
-              setSelectedMonth((prev) => startOfMonth(addMonths(prev, 1)))
-            }
-          >
-            Next Month
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setSelectedMonth(prev => startOfMonth(subMonths(prev, 1)))}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="min-w-[120px] text-center font-medium">
+              {format(selectedMonth, "MMMM yyyy")}
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setSelectedMonth(prev => startOfMonth(addMonths(prev, 1)))}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         <div className="grid gap-4">
