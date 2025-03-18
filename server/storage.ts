@@ -73,7 +73,7 @@ export class MemStorage implements IStorage {
     const existingAvailability = Array.from(this.availability.values()).find(
       (a) => 
         a.userId === data.userId && 
-        a.serviceDate.toISOString().split('T')[0] === new Date(data.serviceDate).toISOString().split('T')[0]
+        new Date(a.serviceDate).toISOString().split('T')[0] === new Date(data.serviceDate).toISOString().split('T')[0]
     );
 
     if (existingAvailability) {
@@ -89,8 +89,10 @@ export class MemStorage implements IStorage {
       // Create new availability
       const id = this.currentId++;
       const availability: Availability = {
-        ...data,
         id,
+        userId: data.userId,
+        serviceDate: data.serviceDate,
+        isAvailable: data.isAvailable,
         lastUpdated: new Date()
       };
       this.availability.set(id, availability);
