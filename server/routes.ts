@@ -50,6 +50,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add the delete route after the existing admin routes
+  app.delete("/api/admin/members/:id", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user.isAdmin) {
+      return res.sendStatus(403);
+    }
+
+    try {
+      await storage.deleteUser(parseInt(req.params.id));
+      res.sendStatus(200);
+    } catch (err) {
+      if (err instanceof Error) {
+        res.status(400).json({ message: err.message });
+      } else {
+        res.status(500).json({ message: "Failed to delete member" });
+      }
+    }
+  });
+
   // Add these routes after the existing admin routes
   app.get("/api/admin/name-format", async (req, res) => {
     if (!req.isAuthenticated() || !req.user.isAdmin) {

@@ -60,6 +60,26 @@ export class MemStorage implements IStorage {
     return user;
   }
 
+  async deleteUser(id: number): Promise<void> {
+    if (!this.users.has(id)) {
+      throw new Error("User not found");
+    }
+    // Don't allow deleting the last admin
+    const remainingAdmins = Array.from(this.users.values()).filter(
+      user => user.isAdmin && user.id !== id
+    ).length;
+    if (this.users.get(id)?.isAdmin && remainingAdmins === 0) {
+      throw new Error("Cannot delete the last admin user");
+    }
+    this.users.delete(id);
+    // Also delete all availability records for this user
+    this.availability = new Map(
+      Array.from(this.availability.values())
+        .filter(a => a.userId !== id)
+        .map(a => [a.id, a])
+    );
+  }
+
   async updateUserPin(id: number, pin: string): Promise<User> {
     const user = await this.getUser(id);
     if (!user) throw new Error("User not found");
