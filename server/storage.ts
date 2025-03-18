@@ -20,6 +20,7 @@ export class DatabaseStorage implements IStorage {
 
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
+    console.log(`Retrieved user: ${JSON.stringify(user)}`);
     return user;
   }
 
@@ -31,8 +32,13 @@ export class DatabaseStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
-      .values(insertUser)
+      .values({
+        ...insertUser,
+        firstLogin: true,
+        pin: "000000"
+      })
       .returning();
+    console.log(`Created new user: ${JSON.stringify(user)}`);
     return user;
   }
 
@@ -55,12 +61,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUserPin(id: number, pin: string): Promise<User> {
+    console.log(`Updating PIN for user ${id}`);
     const [user] = await db
       .update(users)
-      .set({ pin, firstLogin: false })
+      .set({ 
+        pin,
+        firstLogin: false 
+      })
       .where(eq(users.id, id))
       .returning();
+
     if (!user) throw new Error("User not found");
+    console.log(`Updated user PIN: ${JSON.stringify(user)}`);
     return user;
   }
 
@@ -121,6 +133,7 @@ export class DatabaseStorage implements IStorage {
     this.nameFormat = format;
     return format;
   }
+
   formatUserName(user: User): string {
     switch (this.nameFormat) {
       case 'first':

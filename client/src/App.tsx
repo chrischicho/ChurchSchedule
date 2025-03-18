@@ -9,6 +9,7 @@ import HomePage from "@/pages/home-page";
 import RosterPage from "@/pages/roster-page";
 import AdminPage from "@/pages/admin-page";
 import { ProtectedRoute } from "./lib/protected-route";
+import { FirstLoginModal } from "@/components/first-login-modal";
 
 function Router() {
   return (
@@ -27,6 +28,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <Router />
+        <FirstLoginModal />
         <Toaster />
       </AuthProvider>
     </QueryClientProvider>
