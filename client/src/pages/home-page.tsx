@@ -60,12 +60,12 @@ export default function HomePage() {
       <NavBar />
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
-          <div className="mb-8 text-center">
-            <div className="inline-flex items-center gap-2 text-2xl font-medium text-muted-foreground mb-2">
-              <User className="h-6 w-6" />
+          <div className="mb-6 text-center">
+            <div className="inline-flex items-center gap-2 text-lg font-medium text-muted-foreground mb-1">
+              <User className="h-5 w-5" />
               Welcome
             </div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
               {user?.firstName} {user?.lastName}
             </h1>
           </div>
