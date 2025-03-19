@@ -95,24 +95,9 @@ export default function RosterPage() {
         description: "Your availability has been updated",
       });
     } catch (error) {
-      let errorMessage = "Failed to update availability";
-      try {
-        const response = await error.response?.json();
-        if (response?.type === "notice") {
-          setNoticeMessage(response.message);
-          return;
-        }
-        if (response?.message) {
-          errorMessage = response.message;
-        }
-      } catch {
-        if (error.message) {
-          errorMessage = error.message;
-        }
-      }
-
       toast({
-        description: errorMessage,
+        title: "Error",
+        description: "Failed to update availability",
         variant: "destructive",
       });
     }
