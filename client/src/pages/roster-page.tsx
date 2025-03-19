@@ -102,15 +102,21 @@ export default function RosterPage() {
             <div className="p-4">
               {availableUsers.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                  {availableUsers.map((user) => (
-                    <div
-                      key={user.id}
-                      className="flex items-center gap-2 p-2 rounded-md bg-muted/50"
-                    >
-                      <Users className="h-4 w-4 text-primary" />
-                      <span className="text-sm">{formatUserName(user)}</span>
-                    </div>
-                  ))}
+                  {availableUsers
+                    .sort((a, b) => {
+                      const lastNameCompare = a.lastName.localeCompare(b.lastName);
+                      if (lastNameCompare !== 0) return lastNameCompare;
+                      return a.firstName.localeCompare(b.firstName);
+                    })
+                    .map((user) => (
+                      <div
+                        key={user.id}
+                        className="flex items-center gap-2 p-2 rounded-md bg-muted/50"
+                      >
+                        <Users className="h-4 w-4 text-primary" />
+                        <span className="text-sm">{formatUserName(user)}</span>
+                      </div>
+                    ))}
                 </div>
               ) : (
                 <p className="text-muted-foreground text-sm text-center py-4">
@@ -145,7 +151,14 @@ export default function RosterPage() {
                 </TableCell>
                 <TableCell>
                   {availableUsers.length > 0
-                    ? availableUsers.map(user => formatUserName(user)).join(", ")
+                    ? availableUsers
+                        .sort((a, b) => {
+                          const lastNameCompare = a.lastName.localeCompare(b.lastName);
+                          if (lastNameCompare !== 0) return lastNameCompare;
+                          return a.firstName.localeCompare(b.firstName);
+                        })
+                        .map(user => formatUserName(user))
+                        .join(", ")
                     : <span className="text-muted-foreground">No members available</span>
                   }
                 </TableCell>
