@@ -31,11 +31,11 @@ export default function AuthPage() {
     queryKey: ["/api/users"],
   });
 
-  // Change the sorting function to sort A to Z
+  // Sort users alphabetically by lastName, then firstName
   const sortedUsers = users?.sort((a, b) => {
-    const lastNameCompare = b.lastName.localeCompare(a.lastName);  // Reverse the comparison
-    if (lastNameCompare !== 0) return -lastNameCompare;  // Negate to get correct order
-    return -b.firstName.localeCompare(a.firstName);  // Negate to get correct order
+    const lastNameCompare = b.lastName.localeCompare(a.lastName);
+    if (lastNameCompare !== 0) return -lastNameCompare;
+    return -b.firstName.localeCompare(a.firstName);
   });
 
   // Get the selected user's name for display
