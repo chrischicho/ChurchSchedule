@@ -8,7 +8,7 @@ import { format, startOfMonth, addMonths, eachDayOfInterval, isSunday, subMonths
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Availability } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight, Calendar, User, Sun } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function HomePage() {
@@ -41,12 +41,6 @@ export default function HomePage() {
     },
   });
 
-  // Get all days in the interval and filter for Sundays
-  const sundays = eachDayOfInterval({
-    start: selectedMonth,
-    end: addMonths(selectedMonth, 1),
-  }).filter(day => isSunday(day));
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -56,12 +50,15 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/20">
       <NavBar />
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
           <div className="mb-8 text-center">
-            <h2 className="text-2xl font-medium text-muted-foreground mb-2">Welcome</h2>
+            <div className="inline-flex items-center gap-2 text-2xl font-medium text-muted-foreground mb-2">
+              <User className="h-6 w-6" />
+              Welcome
+            </div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
               {user?.firstName} {user?.lastName}
             </h1>
@@ -72,7 +69,7 @@ export default function HomePage() {
               <Calendar className="h-5 w-5 text-primary" />
               My Availability
             </h3>
-            <div className="flex items-center gap-4 bg-muted px-3 py-1.5 rounded-lg">
+            <div className="flex items-center gap-4 bg-muted px-3 py-1.5 rounded-lg shadow-sm">
               <Button
                 variant="ghost"
                 size="icon"
@@ -105,15 +102,18 @@ export default function HomePage() {
               );
 
               return (
-                <Card key={sunday.toISOString()}>
+                <Card key={sunday.toISOString()} className="group hover:shadow-md transition-shadow">
                   <CardContent className="flex items-center justify-between p-6">
-                    <div>
-                      <h3 className="font-medium">
-                        {format(sunday, "MMMM d, yyyy")}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        Sunday Service
-                      </p>
+                    <div className="flex items-center gap-3">
+                      <Sun className="h-5 w-5 text-primary/80" />
+                      <div>
+                        <h3 className="font-medium">
+                          {format(sunday, "MMMM d, yyyy")}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          Sunday Service
+                        </p>
+                      </div>
                     </div>
                     <Switch
                       checked={availability?.isAvailable ?? false}
@@ -123,7 +123,7 @@ export default function HomePage() {
                           isAvailable: checked,
                         })
                       }
-                      className="switch-transition"
+                      className="switch-transition data-[state=checked]:bg-primary"
                     />
                   </CardContent>
                 </Card>
