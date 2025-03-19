@@ -95,10 +95,12 @@ export default function RosterPage() {
         description: "Your availability has been updated",
       });
     } catch (error) {
+      const message = error?.message || "Failed to update availability";
+      // Show both the notice and a transparent error
+      setNoticeMessage("Sorry, it has passed the deadline. If you want to change your availability for this month, please contact the coordinator");
       toast({
-        title: "Error",
-        description: "Failed to update availability",
-        variant: "destructive",
+        description: message,
+        variant: "default", // Use default variant for a more neutral appearance
       });
     }
   };
