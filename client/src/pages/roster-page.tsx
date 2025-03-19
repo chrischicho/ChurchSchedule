@@ -170,47 +170,51 @@ export default function RosterPage() {
               </h1>
             </div>
 
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2 bg-muted rounded-lg p-1">
-                <Button
-                  variant={viewType === 'card' ? 'default' : 'ghost'}
-                  size="icon"
-                  onClick={() => setViewType('card')}
-                  title="Card View"
-                  className="h-8 w-8"
-                >
-                  <LayoutGrid className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewType === 'table' ? 'default' : 'ghost'}
-                  size="icon"
-                  onClick={() => setViewType('table')}
-                  title="Simple View"
-                  className="h-8 w-8"
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="flex items-center gap-4 bg-muted px-3 py-1.5 rounded-lg shadow-sm">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6"
-                  onClick={() => setSelectedMonth(prev => startOfMonth(subMonths(prev, 1)))}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <div className="min-w-[120px] text-center font-medium">
-                  {format(selectedMonth, "MMMM yyyy")}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 bg-muted rounded-lg p-1">
+                  <Button
+                    variant={viewType === 'card' ? 'default' : 'ghost'}
+                    size="icon"
+                    onClick={() => setViewType('card')}
+                    title="Card View"
+                    className="h-8 w-8"
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant={viewType === 'table' ? 'default' : 'ghost'}
+                    size="icon"
+                    onClick={() => setViewType('table')}
+                    title="Simple View"
+                    className="h-8 w-8"
+                  >
+                    <List className="h-4 w-4" />
+                  </Button>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6"
-                  onClick={() => setSelectedMonth(prev => startOfMonth(addMonths(prev, 1)))}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full"
+                    onClick={() => setSelectedMonth(prev => startOfMonth(subMonths(prev, 1)))}
+                    title="Previous Month"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <div className="min-w-[120px] text-center font-medium">
+                    {format(selectedMonth, "MMMM yyyy")}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full"
+                    onClick={() => setSelectedMonth(prev => startOfMonth(addMonths(prev, 1)))}
+                    title="Next Month"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
