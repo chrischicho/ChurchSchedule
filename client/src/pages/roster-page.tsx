@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { format, startOfMonth, addMonths, eachDayOfInterval, isSunday, subMonths } from "date-fns";
 import { Availability, User } from "@shared/schema";
-import { Loader2, ChevronLeft, ChevronRight, CalendarDays, Users, CheckCircle2 } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight, CalendarDays, Users, Calendar } from "lucide-react";
 
 export default function RosterPage() {
   const [selectedMonth, setSelectedMonth] = useState(startOfMonth(new Date()));
@@ -59,22 +59,14 @@ export default function RosterPage() {
     }
   };
 
-  // Filter availabilities for the selected month and only show available members
-  const monthlyAvailabilities = availabilities?.filter(a => {
-    const availabilityDate = new Date(a.serviceDate);
-    return availabilityDate.getMonth() === selectedMonth.getMonth() &&
-           availabilityDate.getFullYear() === selectedMonth.getFullYear() &&
-           a.isAvailable;
-  });
-
   // Group availabilities by date
-  const groupedAvailabilities = monthlyAvailabilities?.reduce((groups, availability) => {
+  const groupedAvailabilities = availabilities?.reduce((groups, availability) => {
     const date = format(new Date(availability.serviceDate), "yyyy-MM-dd");
     if (!groups[date]) {
       groups[date] = [];
     }
     const user = users?.find(u => u.id === availability.userId);
-    if (user) {
+    if (user && availability.isAvailable) {
       groups[date].push(user);
     }
     return groups;
@@ -115,52 +107,51 @@ export default function RosterPage() {
             </div>
           </div>
 
-          <div className="rounded-md border bg-card shadow-sm">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead className="w-[180px]">Date</TableHead>
-                  <TableHead>Available Members</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sundays.map((sunday) => {
-                  const date = format(sunday, "yyyy-MM-dd");
-                  const availableUsers = groupedAvailabilities[date] || [];
+          <div className="space-y-6">
+            {sundays.map((sunday) => {
+              const date = format(sunday, "yyyy-MM-dd");
+              const availableUsers = groupedAvailabilities[date] || [];
 
-                  return (
-                    <TableRow key={date} className="group hover:bg-muted/50 transition-colors">
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                            {format(sunday, "d")}
+              return (
+                <div key={date} className="bg-card rounded-lg border shadow-sm overflow-hidden">
+                  <div className="p-4 border-b bg-muted/50">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                        <Calendar className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h3 className="font-medium text-lg">
+                          {format(sunday, "MMMM d, yyyy")}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {availableUsers.length} {availableUsers.length === 1 ? 'member' : 'members'} available
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4">
+                    {availableUsers.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                        {availableUsers.map((user, index) => (
+                          <div 
+                            key={user.id}
+                            className="flex items-center gap-2 p-2 rounded-md bg-muted/50"
+                          >
+                            <Users className="h-4 w-4 text-primary" />
+                            <span className="text-sm">{formatUserName(user)}</span>
                           </div>
-                          <div>
-                            {format(sunday, "MMMM d, yyyy")}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {availableUsers.length > 0 ? (
-                          <div className="flex items-center gap-2">
-                            <Users className="h-4 w-4 text-muted-foreground" />
-                            <span>{availableUsers.map(user => formatUserName(user)).join(", ")}</span>
-                            <span className="text-muted-foreground ml-2">
-                              ({availableUsers.length} {availableUsers.length === 1 ? 'member' : 'members'})
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground flex items-center gap-2">
-                            <CheckCircle2 className="h-4 w-4" />
-                            Pending responses
-                          </span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground text-sm text-center py-4">
+                        No members have indicated availability yet
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </main>
