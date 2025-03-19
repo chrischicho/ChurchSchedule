@@ -103,7 +103,7 @@ export default function RosterPage() {
               {availableUsers.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                   {availableUsers.map((user) => (
-                    <div 
+                    <div
                       key={user.id}
                       className="flex items-center gap-2 p-2 rounded-md bg-muted/50"
                     >
@@ -144,7 +144,7 @@ export default function RosterPage() {
                   {format(sunday, "MMMM d, yyyy")}
                 </TableCell>
                 <TableCell>
-                  {availableUsers.length > 0 
+                  {availableUsers.length > 0
                     ? availableUsers.map(user => formatUserName(user)).join(", ")
                     : <span className="text-muted-foreground">No members available</span>
                   }
@@ -170,47 +170,46 @@ export default function RosterPage() {
               </h1>
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="flex justify-between items-center">
               <div className="flex items-center gap-2 bg-muted rounded-lg p-1">
                 <Button
                   variant={viewType === 'card' ? 'default' : 'ghost'}
-                  size="sm"
+                  size="icon"
                   onClick={() => setViewType('card')}
-                  className="gap-2"
+                  title="Card View"
+                  className="h-8 w-8"
                 >
                   <LayoutGrid className="h-4 w-4" />
-                  Card
                 </Button>
                 <Button
                   variant={viewType === 'table' ? 'default' : 'ghost'}
-                  size="sm"
+                  size="icon"
                   onClick={() => setViewType('table')}
-                  className="gap-2"
+                  title="Simple View"
+                  className="h-8 w-8"
                 >
                   <List className="h-4 w-4" />
-                  Simple
                 </Button>
               </div>
-
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-4 bg-muted px-3 py-1.5 rounded-lg shadow-sm">
                 <Button
                   variant="ghost"
-                  size="sm"
+                  size="icon"
+                  className="h-6 w-6"
                   onClick={() => setSelectedMonth(prev => startOfMonth(subMonths(prev, 1)))}
                 >
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Previous
+                  <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <div className="px-3 py-1.5 bg-muted rounded-md font-medium min-w-[140px] text-center">
+                <div className="min-w-[120px] text-center font-medium">
                   {format(selectedMonth, "MMMM yyyy")}
                 </div>
                 <Button
                   variant="ghost"
-                  size="sm"
+                  size="icon"
+                  className="h-6 w-6"
                   onClick={() => setSelectedMonth(prev => startOfMonth(addMonths(prev, 1)))}
                 >
-                  Next
-                  <ChevronRight className="h-4 w-4 ml-1" />
+                  <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
             </div>
