@@ -142,7 +142,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             serviceDate.getFullYear() === today.getFullYear() &&
             today.getDate() > settings.deadlineDay) {
           return res.status(403).json({ 
-            message: "Cannot update availability after the deadline" 
+            message: `Dear member, the deadline for updating availability for this month was on the ${settings.deadlineDay}th. Please contact an admin if you need to make any changes. Thank you for your understanding.` 
           });
         }
       }
