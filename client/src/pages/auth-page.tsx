@@ -8,14 +8,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { User } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, UserCircle2, Lock } from "lucide-react";
+import { Loader2, UserCircle2, Lock, Search } from "lucide-react";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export default function AuthPage() {
   const [, setLocation] = useLocation();
@@ -23,10 +24,23 @@ export default function AuthPage() {
   const { toast } = useToast();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [pin, setPin] = useState("");
+  const [open, setOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
 
   const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ["/api/users"],
   });
+
+  // Sort users alphabetically by lastName, then firstName
+  const sortedUsers = users?.sort((a, b) => {
+    const lastNameCompare = a.lastName.localeCompare(b.lastName);
+    if (lastNameCompare !== 0) return lastNameCompare;
+    return a.firstName.localeCompare(b.firstName);
+  });
+
+  // Get the selected user's name for display
+  const selectedUser = users?.find(u => u.id === selectedId);
+  const selectedName = selectedUser ? `${selectedUser.firstName} ${selectedUser.lastName}` : "";
 
   // Redirect if already logged in
   if (user) {
@@ -55,7 +69,6 @@ export default function AuthPage() {
 
     try {
       await login(selectedId, pin);
-      // The FirstLoginModal will handle PIN change if needed
       setLocation("/");
     } catch (error) {
       // Error handling is done in useAuth
@@ -85,18 +98,43 @@ export default function AuthPage() {
                 <UserCircle2 className="h-4 w-4 text-primary" />
                 Select Your Name
               </label>
-              <Select value={selectedId?.toString()} onValueChange={(value) => setSelectedId(Number(value))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select your name" />
-                </SelectTrigger>
-                <SelectContent>
-                  {users?.map((user) => (
-                    <SelectItem key={user.id} value={user.id.toString()}>
-                      {user.firstName} {user.lastName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={open} onOpenChange={setOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={open}
+                    className="w-full justify-between"
+                  >
+                    {selectedName || "Search for your name..."}
+                    <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0">
+                  <Command>
+                    <CommandInput
+                      placeholder="Search by name..."
+                      value={searchValue}
+                      onValueChange={setSearchValue}
+                    />
+                    <CommandEmpty>No member found.</CommandEmpty>
+                    <CommandGroup>
+                      {sortedUsers?.map((user) => (
+                        <CommandItem
+                          key={user.id}
+                          value={`${user.firstName} ${user.lastName}`}
+                          onSelect={() => {
+                            setSelectedId(user.id);
+                            setOpen(false);
+                          }}
+                        >
+                          {user.firstName} {user.lastName}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium flex items-center gap-2">
