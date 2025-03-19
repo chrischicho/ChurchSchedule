@@ -9,6 +9,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { format, startOfMonth, addMonths, eachDayOfInterval, isSunday, subMonths } from "date-fns";
 import { Availability, User } from "@shared/schema";
@@ -23,6 +29,7 @@ export default function RosterPage() {
   const [selectedMonth, setSelectedMonth] = useState(startOfMonth(new Date()));
   const [viewType, setViewType] = useState<ViewType>('card');
   const { toast } = useToast();
+  const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
 
   const { data: availabilities, isLoading: isLoadingAvailability } = useQuery<Availability[]>({
     queryKey: ["/api/availability"],
@@ -70,39 +77,36 @@ export default function RosterPage() {
 
   const handleAvailabilityUpdate = async (user: User, date: Date, isAvailable: boolean) => {
     try {
-      await apiRequest("POST", "/api/availability", {
+      const response = await apiRequest("POST", "/api/availability", {
         userId: user.id,
         serviceDate: date,
         isAvailable,
       });
 
-      queryClient.invalidateQueries({ queryKey: ["/api/availability"] });
-      toast({
-        title: "Success",
-        description: "Your availability has been updated",
-      });
-    } catch (error: any) {
-      let response;
-      try {
-        if (error.response) {
-          response = await error.response.json();
-        }
-      } catch {
-        response = { message: "An unexpected error occurred" };
+      const data = await response.json();
+
+      if (data.type === "notice") {
+        setNoticeMessage(data.message);
+        return;
       }
 
-      if (response?.type === "notice") {
-        toast({
-          description: response.message,
-          variant: "default",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: response?.message || "Failed to update availability",
-          variant: "destructive",
-        });
+      queryClient.invalidateQueries({ queryKey: ["/api/availability"] });
+      toast({
+        description: "Your availability has been updated",
+      });
+    } catch (error) {
+      //Improved error handling:  Avoid displaying JSON formatting.  Only show a user-friendly message.
+      let errorMessage = "Failed to update availability";
+      if (error.response && error.response.data && error.response.data.message) {
+          errorMessage = error.response.data.message; //Extract message if available
+      } else if (error.message) {
+          errorMessage = error.message; //Use error message if available
       }
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
     }
   };
 
@@ -274,6 +278,19 @@ export default function RosterPage() {
           {viewType === 'card' ? <CardView /> : <TableView />}
         </div>
       </main>
+
+      <AlertDialog open={!!noticeMessage} onOpenChange={() => setNoticeMessage(null)}>
+        <AlertDialogContent>
+          <AlertDialogDescription className="text-center py-4">
+            {noticeMessage}
+          </AlertDialogDescription>
+          <div className="flex justify-center">
+            <AlertDialogCancel onClick={() => setNoticeMessage(null)}>
+              Close
+            </AlertDialogCancel>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -141,7 +141,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (serviceDate.getMonth() === today.getMonth() &&
             serviceDate.getFullYear() === today.getFullYear() &&
             today.getDate() > settings.deadlineDay) {
-          return res.status(403).json({ 
+          // Return 200 status with notice type instead of 403
+          return res.status(200).json({ 
             message: "Sorry, it has passed the deadline. If you want to change your availability for this month, please contact the coordinator",
             type: "notice" 
           });
