@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { NavBar } from "@/components/nav-bar";
 import {
   Table,
@@ -13,12 +13,17 @@ import { Button } from "@/components/ui/button";
 import { format, startOfMonth, addMonths, eachDayOfInterval, isSunday, subMonths } from "date-fns";
 import { Availability, User } from "@shared/schema";
 import { Loader2, ChevronLeft, ChevronRight, CalendarDays, Users, Calendar, LayoutGrid, List } from "lucide-react";
+import { toast } from "@/components/ui/toast";
+import { apiRequest } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 type ViewType = 'card' | 'table';
 
 export default function RosterPage() {
+  const queryClient = useQueryClient();
   const [selectedMonth, setSelectedMonth] = useState(startOfMonth(new Date()));
   const [viewType, setViewType] = useState<ViewType>('card');
+  const toast = useToast(); // Added useToast hook
 
   const { data: availabilities, isLoading: isLoadingAvailability } = useQuery<Availability[]>({
     queryKey: ["/api/availability"],
@@ -34,13 +39,11 @@ export default function RosterPage() {
 
   const isLoading = isLoadingAvailability || isLoadingUsers;
 
-  // Get all Sundays in the interval and filter for Sundays
   const sundays = eachDayOfInterval({
     start: selectedMonth,
     end: addMonths(selectedMonth, 1),
   }).filter(day => isSunday(day));
 
-  // Format user name based on admin settings
   const formatUserName = (user: User) => {
     switch (nameFormat?.format) {
       case 'first':
@@ -54,7 +57,6 @@ export default function RosterPage() {
     }
   };
 
-  // Group availabilities by date
   const groupedAvailabilities = availabilities?.reduce((groups, availability) => {
     const date = format(new Date(availability.serviceDate), "yyyy-MM-dd");
     if (!groups[date]) {
@@ -66,6 +68,45 @@ export default function RosterPage() {
     }
     return groups;
   }, {} as Record<string, User[]>) || {};
+
+  const handleAvailabilityUpdate = async (user: User, date: Date, isAvailable: boolean) => {
+    try {
+      await apiRequest("POST", "/api/availability", {
+        userId: user.id,
+        serviceDate: date,
+        isAvailable,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["/api/availability"] });
+      toast({
+        title: "Success",
+        description: "Your availability has been updated",
+      });
+    } catch (error: any) {
+      let response;
+      try {
+        if (error.response) {
+          response = await error.response.json();
+        }
+      } catch {
+        response = { message: "An unexpected error occurred" };
+      }
+
+      if (response?.type === "notice") {
+        toast({
+          title: "Notice",
+          description: response.message,
+          variant: "default",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: response?.message || "Failed to update availability",
+          variant: "destructive",
+        });
+      }
+    }
+  };
 
   if (isLoading) {
     return (

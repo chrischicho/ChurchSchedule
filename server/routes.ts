@@ -142,7 +142,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             serviceDate.getFullYear() === today.getFullYear() &&
             today.getDate() > settings.deadlineDay) {
           return res.status(403).json({ 
-            message: `Dear member, the deadline for updating availability for this month was on the ${settings.deadlineDay}th. Please contact an admin if you need to make any changes. Thank you for your understanding.` 
+            message: "Sorry, it has passed the deadline. If you want to change your availability for this month, please contact the coordinator",
+            type: "notice" 
           });
         }
       }
