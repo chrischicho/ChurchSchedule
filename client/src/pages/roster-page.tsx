@@ -13,9 +13,8 @@ import { Button } from "@/components/ui/button";
 import { format, startOfMonth, addMonths, eachDayOfInterval, isSunday, subMonths } from "date-fns";
 import { Availability, User } from "@shared/schema";
 import { Loader2, ChevronLeft, ChevronRight, CalendarDays, Users, Calendar, LayoutGrid, List } from "lucide-react";
-import { toast } from "@/components/ui/toast";
-import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/api";
 
 type ViewType = 'card' | 'table';
 
@@ -23,7 +22,7 @@ export default function RosterPage() {
   const queryClient = useQueryClient();
   const [selectedMonth, setSelectedMonth] = useState(startOfMonth(new Date()));
   const [viewType, setViewType] = useState<ViewType>('card');
-  const toast = useToast(); // Added useToast hook
+  const { toast } = useToast();
 
   const { data: availabilities, isLoading: isLoadingAvailability } = useQuery<Availability[]>({
     queryKey: ["/api/availability"],
@@ -94,7 +93,6 @@ export default function RosterPage() {
 
       if (response?.type === "notice") {
         toast({
-          title: "Notice",
           description: response.message,
           variant: "default",
         });
