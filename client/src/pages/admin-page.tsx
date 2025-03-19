@@ -21,7 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { User } from "@shared/schema";
+import { User, Settings } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Loader2, Trash2 } from "lucide-react";
 
@@ -32,24 +32,21 @@ export default function AdminPage() {
   const [lastName, setLastName] = useState("");
   const [nameFormat, setNameFormat] = useState("full");
   const [memberToDelete, setMemberToDelete] = useState<User | null>(null);
-
-  // Redirect if not admin
-  if (!user?.isAdmin) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
-          <p className="text-muted-foreground">
-            You don't have permission to view this page.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  const [deadlineDay, setDeadlineDay] = useState(20); // Default to 20th
 
   const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/members"],
   });
+
+  const { data: settings } = useQuery<Settings>({
+    queryKey: ["/api/admin/settings"],
+  });
+
+  useEffect(() => {
+    if (settings) {
+      setDeadlineDay(settings.deadlineDay);
+    }
+  }, [settings]);
 
   const createMemberMutation = useMutation({
     mutationFn: async (data: { firstName: string; lastName: string }) => {
@@ -57,7 +54,6 @@ export default function AdminPage() {
       return res.json();
     },
     onSuccess: () => {
-      // Invalidate both the admin members list and the users list for login
       queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       setFirstName("");
@@ -81,12 +77,32 @@ export default function AdminPage() {
       await apiRequest("DELETE", `/api/admin/members/${userId}`);
     },
     onSuccess: () => {
-      // Invalidate both the admin members list and the users list for login
       queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       toast({
         title: "Success",
         description: "Member removed successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (data: { deadlineDay: number }) => {
+      const res = await apiRequest("POST", "/api/admin/settings", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
+      toast({
+        title: "Success",
+        description: "Settings updated successfully",
       });
     },
     onError: (error: Error) => {
@@ -154,6 +170,19 @@ export default function AdminPage() {
     createMemberMutation.mutate({ firstName, lastName });
   };
 
+  if (!user?.isAdmin) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
+          <p className="text-muted-foreground">
+            You don't have permission to view this page.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -202,7 +231,7 @@ export default function AdminPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Display Settings</CardTitle>
+              <CardTitle>System Settings</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -220,6 +249,28 @@ export default function AdminPage() {
                     <option value="first">First Name Only (John)</option>
                     <option value="last">Last Name Only (Smith)</option>
                     <option value="initials">Initials (JS)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Availability Deadline Day</label>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Members cannot update their availability after this day of the month.
+                  </p>
+                  <select
+                    className="w-full mt-1 border rounded-md h-10 px-3"
+                    value={deadlineDay}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value);
+                      setDeadlineDay(value);
+                      updateSettingsMutation.mutate({ deadlineDay: value });
+                    }}
+                  >
+                    {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                      <option key={day} value={day}>
+                        {day}th of the month
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>

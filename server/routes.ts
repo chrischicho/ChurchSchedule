@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { ZodError } from "zod";
-import { insertAvailabilitySchema } from "@shared/schema";
+import { insertAvailabilitySchema, deadlineDaySchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -29,6 +29,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(users);
     } catch (err) {
       res.status(500).json({ message: "Failed to fetch members" });
+    }
+  });
+
+  // Add settings endpoints
+  app.get("/api/admin/settings", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user.isAdmin) {
+      return res.sendStatus(403);
+    }
+
+    try {
+      const settings = await storage.getSettings();
+      res.json(settings);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch settings" });
+    }
+  });
+
+  app.post("/api/admin/settings", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user.isAdmin) {
+      return res.sendStatus(403);
+    }
+
+    try {
+      const { deadlineDay } = req.body;
+      deadlineDaySchema.parse(deadlineDay); // Validate the day is between 1-31
+      const settings = await storage.updateSettings({ deadlineDay });
+      res.json(settings);
+    } catch (err) {
+      if (err instanceof ZodError) {
+        res.status(400).json({ message: "Invalid deadline day" });
+      } else {
+        res.status(500).json({ message: "Failed to update settings" });
+      }
     }
   });
 
@@ -68,7 +101,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add these routes after the existing admin routes
   app.get("/api/admin/name-format", async (req, res) => {
     if (!req.isAuthenticated() || !req.user.isAdmin) {
       return res.sendStatus(403);
@@ -95,12 +127,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Availability routes
   app.post("/api/availability", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
       const data = insertAvailabilitySchema.parse(req.body);
+      const settings = await storage.getSettings();
+
+      const serviceDate = new Date(data.serviceDate);
+      const today = new Date();
+
+      if (!req.user.isAdmin) {
+        if (serviceDate.getMonth() === today.getMonth() &&
+            serviceDate.getFullYear() === today.getFullYear() &&
+            today.getDate() > settings.deadlineDay) {
+          return res.status(403).json({ 
+            message: "Cannot update availability after the deadline" 
+          });
+        }
+      }
+
       const availability = await storage.setAvailability(data);
       res.json(availability);
     } catch (err) {

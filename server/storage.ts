@@ -1,5 +1,5 @@
 import { IStorage } from "./storage.interface";
-import { users, availability, InsertUser, User, InsertAvailability, Availability } from "@shared/schema";
+import { users, availability, settings, InsertUser, User, InsertAvailability, Availability, Settings } from "@shared/schema";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
 import session from "express-session";
@@ -87,7 +87,7 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           eq(availability.userId, data.userId),
-          eq(availability.serviceDate, new Date(dateStr))
+          eq(availability.serviceDate, dateStr)
         )
       );
 
@@ -108,6 +108,7 @@ export class DatabaseStorage implements IStorage {
         .insert(availability)
         .values({
           ...data,
+          serviceDate: dateStr,
           lastUpdated: new Date()
         })
         .returning();
@@ -121,6 +122,50 @@ export class DatabaseStorage implements IStorage {
 
   async getAllUsers(): Promise<User[]> {
     return db.select().from(users);
+  }
+
+  // Settings related methods
+  async getSettings(): Promise<Settings> {
+    // Get settings or create default if not exists
+    const [existingSettings] = await db.select().from(settings);
+    if (existingSettings) {
+      return existingSettings;
+    }
+
+    // Create default settings if none exist
+    const [defaultSettings] = await db
+      .insert(settings)
+      .values({
+        deadlineDay: 20,
+        nameFormat: 'full'
+      })
+      .returning();
+
+    return defaultSettings;
+  }
+
+  async updateSettings(data: Partial<Settings>): Promise<Settings> {
+    const [existingSettings] = await db.select().from(settings);
+
+    if (existingSettings) {
+      // Update existing settings
+      const [updated] = await db
+        .update(settings)
+        .set(data)
+        .where(eq(settings.id, existingSettings.id))
+        .returning();
+      return updated;
+    }
+
+    // Create new settings if none exist
+    const [created] = await db
+      .insert(settings)
+      .values({
+        deadlineDay: data.deadlineDay ?? 20,
+        nameFormat: data.nameFormat ?? 'full'
+      })
+      .returning();
+    return created;
   }
 
   private nameFormat: string = 'full';

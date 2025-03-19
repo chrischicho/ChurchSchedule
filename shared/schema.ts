@@ -21,7 +21,7 @@ export const availability = pgTable("availability", {
 
 export const settings = pgTable("settings", {
   id: serial("id").primaryKey(),
-  deadlineDay: integer("deadline_day").default(20).notNull(),
+  deadlineDay: integer("deadline_day").default(20).notNull(), // Day of month (1-31) when availability updates are locked
   nameFormat: text("name_format").default("full").notNull(), // 'full' | 'first' | 'last' | 'initials'
 });
 
@@ -34,6 +34,10 @@ export const insertAvailabilitySchema = createInsertSchema(availability).omit({
   lastUpdated: true
 });
 
+export const insertSettingsSchema = createInsertSchema(settings).omit({
+  id: true
+});
+
 export const updatePinSchema = z.object({
   currentPin: z.string().regex(/^\d{4,6}$/, "PIN must be 4-6 digits"),
   newPin: z.string().regex(/^\d{4,6}$/, "PIN must be 4-6 digits")
@@ -41,9 +45,14 @@ export const updatePinSchema = z.object({
 
 export const nameFormatSchema = z.enum(['full', 'first', 'last', 'initials']);
 
+// Schema for validating deadline day
+export const deadlineDaySchema = z.number().min(1).max(31);
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Availability = typeof availability.$inferSelect;
 export type InsertAvailability = z.infer<typeof insertAvailabilitySchema>;
 export type UpdatePin = z.infer<typeof updatePinSchema>;
 export type NameFormat = z.infer<typeof nameFormatSchema>;
+export type Settings = typeof settings.$inferSelect;
+export type InsertSettings = z.infer<typeof insertSettingsSchema>;
