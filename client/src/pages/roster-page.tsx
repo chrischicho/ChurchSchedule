@@ -23,11 +23,31 @@ import { apiRequest } from "@/lib/api";
 
 type ViewType = 'card' | 'table';
 
+// Separate dialog component for better organization
+const DeadlineNoticeDialog = ({ 
+  isOpen, 
+  onClose 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void;
+}) => (
+  <AlertDialog open={isOpen} onOpenChange={onClose}>
+    <AlertDialogContent>
+      <AlertDialogDescription className="text-center py-4">
+        Sorry, it has passed the deadline. If you want to change your availability for this month, please contact the coordinator
+      </AlertDialogDescription>
+      <div className="flex justify-center">
+        <AlertDialogCancel onClick={onClose}>Close</AlertDialogCancel>
+      </div>
+    </AlertDialogContent>
+  </AlertDialog>
+);
+
 export default function RosterPage() {
   const queryClient = useQueryClient();
   const [selectedMonth, setSelectedMonth] = useState(startOfMonth(new Date()));
   const [viewType, setViewType] = useState<ViewType>('card');
-  const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
+  const [showDeadlineNotice, setShowDeadlineNotice] = useState(false);
 
   const { data: availabilities, isLoading: isLoadingAvailability } = useQuery<Availability[]>({
     queryKey: ["/api/availability"],
@@ -83,15 +103,13 @@ export default function RosterPage() {
 
       const data = await response.json();
 
-      // Check if server returned a notice type response
+      // If we get a notice about deadline, show the dialog
       if (data.type === "notice") {
-        setNoticeMessage(data.message);
+        setShowDeadlineNotice(true);
         return;
       }
 
-      // Only update cache if it's not a notice
-      queryClient.invalidateQueries({ queryKey: ["/api/availability"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+
     } catch (error) {
       console.error('Failed to update availability:', error);
     }
@@ -159,126 +177,117 @@ export default function RosterPage() {
       })}
     </div>
   );
-};
 
-const TableView = () => (
-  <div className="rounded-md border bg-card shadow-sm">
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Date</TableHead>
-          <TableHead>Available Members</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {sundays.map((sunday) => {
-          const date = format(sunday, "yyyy-MM-dd");
-          const availableUsers = groupedAvailabilities[date] || [];
+  const TableView = () => (
+    <div className="rounded-md border bg-card shadow-sm">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Date</TableHead>
+            <TableHead>Available Members</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {sundays.map((sunday) => {
+            const date = format(sunday, "yyyy-MM-dd");
+            const availableUsers = groupedAvailabilities[date] || [];
 
-          return (
-            <TableRow key={date}>
-              <TableCell className="font-medium">
-                {format(sunday, "MMMM d, yyyy")}
-              </TableCell>
-              <TableCell>
-                {availableUsers.length > 0
-                  ? availableUsers
-                      .sort((a, b) => {
-                        const lastNameCompare = b.lastName.localeCompare(a.lastName);
-                        if (lastNameCompare !== 0) return -lastNameCompare;
-                        return -b.firstName.localeCompare(a.firstName);
-                      })
-                      .map(user => formatUserName(user))
-                      .join(", ")
-                  : <span className="text-muted-foreground">No members available</span>
-                }
-              </TableCell>
-            </TableRow>
-          );
-        })}
-      </TableBody>
-    </Table>
-  </div>
-);
+            return (
+              <TableRow key={date}>
+                <TableCell className="font-medium">
+                  {format(sunday, "MMMM d, yyyy")}
+                </TableCell>
+                <TableCell>
+                  {availableUsers.length > 0
+                    ? availableUsers
+                        .sort((a, b) => {
+                          const lastNameCompare = b.lastName.localeCompare(a.lastName);
+                          if (lastNameCompare !== 0) return -lastNameCompare;
+                          return -b.firstName.localeCompare(a.firstName);
+                        })
+                        .map(user => formatUserName(user))
+                        .join(", ")
+                    : <span className="text-muted-foreground">No members available</span>
+                  }
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </div>
+  );
 
-return (
-  <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/20">
-    <NavBar />
-    <main className="flex-1 container mx-auto px-4 py-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-6">
-            <CalendarDays className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-              Service Roster
-            </h1>
-          </div>
+  return (
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/20">
+      <NavBar />
+      <main className="flex-1 container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="mb-8">
+            <div className="flex items-center gap-3 mb-6">
+              <CalendarDays className="h-6 w-6 text-primary" />
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                Service Roster
+              </h1>
+            </div>
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 bg-muted rounded-lg p-1">
-                <Button
-                  variant={viewType === 'card' ? 'default' : 'ghost'}
-                  size="icon"
-                  onClick={() => setViewType('card')}
-                  title="Card View"
-                  className="h-8 w-8"
-                >
-                  <LayoutGrid className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewType === 'table' ? 'default' : 'ghost'}
-                  size="icon"
-                  onClick={() => setViewType('table')}
-                  title="Simple View"
-                  className="h-8 w-8"
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-full"
-                  onClick={() => setSelectedMonth(prev => startOfMonth(subMonths(prev, 1)))}
-                  title="Previous Month"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <div className="min-w-[120px] text-center font-medium">
-                  {format(selectedMonth, "MMMM yyyy")}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 bg-muted rounded-lg p-1">
+                  <Button
+                    variant={viewType === 'card' ? 'default' : 'ghost'}
+                    size="icon"
+                    onClick={() => setViewType('card')}
+                    title="Card View"
+                    className="h-8 w-8"
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant={viewType === 'table' ? 'default' : 'ghost'}
+                    size="icon"
+                    onClick={() => setViewType('table')}
+                    title="Simple View"
+                    className="h-8 w-8"
+                  >
+                    <List className="h-4 w-4" />
+                  </Button>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-full"
-                  onClick={() => setSelectedMonth(prev => startOfMonth(addMonths(prev, 1)))}
-                  title="Next Month"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full"
+                    onClick={() => setSelectedMonth(prev => startOfMonth(subMonths(prev, 1)))}
+                    title="Previous Month"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <div className="min-w-[120px] text-center font-medium">
+                    {format(selectedMonth, "MMMM yyyy")}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full"
+                    onClick={() => setSelectedMonth(prev => startOfMonth(addMonths(prev, 1)))}
+                    title="Next Month"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {viewType === 'card' ? <CardView /> : <TableView />}
-      </div>
-    </main>
-
-    <AlertDialog open={!!noticeMessage} onOpenChange={() => setNoticeMessage(null)}>
-      <AlertDialogContent className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50">
-        <AlertDialogDescription className="text-center py-4">
-          {noticeMessage}
-        </AlertDialogDescription>
-        <div className="flex justify-center">
-          <AlertDialogCancel onClick={() => setNoticeMessage(null)}>
-            Close
-          </AlertDialogCancel>
+          {viewType === 'card' ? <CardView /> : <TableView />}
         </div>
-      </AlertDialogContent>
-    </AlertDialog>
-  </div>
-);
+      </main>
+
+      <DeadlineNoticeDialog 
+        isOpen={showDeadlineNotice} 
+        onClose={() => setShowDeadlineNotice(false)} 
+      />
+    </div>
+  );
 }
