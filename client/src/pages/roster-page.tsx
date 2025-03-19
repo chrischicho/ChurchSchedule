@@ -104,9 +104,9 @@ export default function RosterPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                   {availableUsers
                     .sort((a, b) => {
-                      const lastNameCompare = a.lastName.localeCompare(b.lastName);
-                      if (lastNameCompare !== 0) return lastNameCompare;
-                      return a.firstName.localeCompare(b.firstName);
+                      const lastNameCompare = b.lastName.localeCompare(a.lastName);
+                      if (lastNameCompare !== 0) return -lastNameCompare;
+                      return -b.firstName.localeCompare(a.firstName);
                     })
                     .map((user) => (
                       <div
@@ -153,9 +153,9 @@ export default function RosterPage() {
                   {availableUsers.length > 0
                     ? availableUsers
                         .sort((a, b) => {
-                          const lastNameCompare = a.lastName.localeCompare(b.lastName);
-                          if (lastNameCompare !== 0) return lastNameCompare;
-                          return a.firstName.localeCompare(b.firstName);
+                          const lastNameCompare = b.lastName.localeCompare(a.lastName);
+                          if (lastNameCompare !== 0) return -lastNameCompare;
+                          return -b.firstName.localeCompare(a.firstName);
                         })
                         .map(user => formatUserName(user))
                         .join(", ")
