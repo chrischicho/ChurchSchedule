@@ -48,6 +48,14 @@ export function NavBar() {
                     </Button>
                   </Link>
                 ))}
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start text-destructive hover:text-destructive"
+                  onClick={() => logout()}
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
+                </Button>
               </nav>
             </SheetContent>
           </Sheet>
@@ -68,8 +76,14 @@ export function NavBar() {
           </nav>
         </div>
 
-        <Button variant="ghost" size="icon" onClick={() => logout()}>
-          <LogOut className="h-5 w-5" />
+        <Button 
+          variant="ghost" 
+          size="sm"
+          className="text-muted-foreground hover:text-destructive"
+          onClick={() => logout()}
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          Sign Out
         </Button>
       </div>
     </header>
