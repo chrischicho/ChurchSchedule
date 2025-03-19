@@ -41,6 +41,12 @@ export default function HomePage() {
     },
   });
 
+  // Get all days in the interval and filter for Sundays
+  const sundays = eachDayOfInterval({
+    start: selectedMonth,
+    end: addMonths(selectedMonth, 1),
+  }).filter(day => isSunday(day));
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
