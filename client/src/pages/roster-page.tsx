@@ -95,15 +95,23 @@ export default function RosterPage() {
         description: "Your availability has been updated",
       });
     } catch (error) {
-      //Improved error handling:  Avoid displaying JSON formatting.  Only show a user-friendly message.
       let errorMessage = "Failed to update availability";
-      if (error.response && error.response.data && error.response.data.message) {
-          errorMessage = error.response.data.message; //Extract message if available
-      } else if (error.message) {
-          errorMessage = error.message; //Use error message if available
+      try {
+        const response = await error.response?.json();
+        if (response?.type === "notice") {
+          setNoticeMessage(response.message);
+          return;
+        }
+        if (response?.message) {
+          errorMessage = response.message;
+        }
+      } catch {
+        if (error.message) {
+          errorMessage = error.message;
+        }
       }
+
       toast({
-        title: "Error",
         description: errorMessage,
         variant: "destructive",
       });
