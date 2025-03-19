@@ -91,6 +91,7 @@ export default function RosterPage() {
       }
 
       queryClient.invalidateQueries({ queryKey: ["/api/availability"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       toast({
         description: "Your availability has been updated",
       });
