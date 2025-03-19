@@ -16,8 +16,8 @@ export function NavBar() {
   const { user, logout } = useAuth();
 
   const navItems = [
-    { href: "/", label: "Home" },
-    { href: "/roster", label: "Roster" },
+    { href: "/", label: "Availability" },
+    { href: "/roster", label: "Show Roster" },
     ...(user?.isAdmin ? [{ href: "/admin", label: "Admin" }] : []),
   ];
 
