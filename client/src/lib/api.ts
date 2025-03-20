@@ -9,6 +9,7 @@ export async function apiRequest(
       "Content-Type": "application/json",
     },
     body: body ? JSON.stringify(body) : undefined,
+    credentials: "include", // Add this to ensure cookies are sent with requests
   });
 
   if (!response.ok) {
