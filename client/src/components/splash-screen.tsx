@@ -23,7 +23,7 @@ export function SplashScreen() {
       <div className="text-center">
         <Logo className="w-32 h-32 mx-auto animate-pulse" />
         <h1 className="mt-4 text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-          AvailEase
+          ElServe
         </h1>
       </div>
     </div>
