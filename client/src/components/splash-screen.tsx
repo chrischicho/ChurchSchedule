@@ -22,7 +22,7 @@ export function SplashScreen() {
       }`}
     >
       <div className="text-center">
-        <Logo className="w-48 h-48 mx-auto animate-[scale-in_1s_ease-out] transition-all" />
+        <Logo className="w-32 h-32 mx-auto animate-[scale-in_1s_ease-out] transition-all" />
       </div>
     </div>
   );
