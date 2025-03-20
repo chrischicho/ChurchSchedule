@@ -122,8 +122,8 @@ export default function AuthPage() {
                 />
                 <datalist id="user-names">
                   {filteredUsers?.map((user) => (
-                    <option 
-                      key={user.id} 
+                    <option
+                      key={user.id}
                       value={`${user.firstName} ${user.lastName}`}
                       onClick={() => {
                         setSelectedId(user.id);
@@ -149,8 +149,8 @@ export default function AuthPage() {
                 ref={pinInputRef}
               />
             </div>
-            <Button 
-              className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70" 
+            <Button
+              className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
               onClick={handleLogin}
             >
               Log In
@@ -162,7 +162,7 @@ export default function AuthPage() {
       <div className="hidden md:flex flex-col justify-center p-8 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary via-primary/90 to-primary/80 text-primary-foreground relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMzLjMxNCAwIDYtMi42ODYgNi02cy0yLjY4Ni02LTYtNi02IDIuNjg2LTYgNiAyLjY4NiA2IDYgNnptMCA2YzMuMzE0IDAgNi0yLjY4NiA2LTZzLTIuNjg2LTYtNi02LTYgMi42ODYtNiA2IDIuNjg2IDYgNiA2em0yNCA2YzMuMzE0IDAgNi0yLjY4NiA2LTZzLTIuNjg2LTYtNi02LTYgMi42ODYtNiA2IDIuNjg2IDYgNiA2eiIgZmlsbD0iY3VycmVudENvbG9yIiBmaWxsLW9wYWNpdHk9IjAuMSIvPjwvZz48L3N2Zz4=')] opacity-10" />
         <div className="relative">
-          <h1 className="text-4xl font-bold mb-4">Welcome to AvailEase</h1>
+          <h1 className="text-4xl font-bold mb-4">Welcome to ElServe</h1>
           <p className="text-lg opacity-90">
             Easily manage your availability for upcoming church services.
           </p>
