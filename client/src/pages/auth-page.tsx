@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, KeyboardEvent } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { Logo } from "@/components/logo";
@@ -8,24 +8,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { User } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, UserCircle2, Lock, Search } from "lucide-react";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { UserCircle2, Lock } from "lucide-react";
 
 export default function AuthPage() {
   const [, setLocation] = useLocation();
   const { user, login } = useAuth();
   const { toast } = useToast();
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [pin, setPin] = useState("");
-  const [open, setOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
+  const [pin, setPin] = useState("");
+  const pinInputRef = useRef<HTMLInputElement>(null);
 
   const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ["/api/users"],
@@ -38,9 +30,11 @@ export default function AuthPage() {
     return -b.firstName.localeCompare(a.firstName);
   });
 
-  // Get the selected user's name for display
-  const selectedUser = users?.find(u => u.id === selectedId);
-  const selectedName = selectedUser ? `${selectedUser.firstName} ${selectedUser.lastName}` : "";
+  // Filter users based on search value
+  const filteredUsers = sortedUsers?.filter(user => {
+    const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
+    return fullName.includes(searchValue.toLowerCase());
+  });
 
   // Redirect if already logged in
   if (user) {
@@ -75,10 +69,25 @@ export default function AuthPage() {
     }
   };
 
+  const handleNameKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && filteredUsers && filteredUsers.length > 0) {
+      const firstUser = filteredUsers[0];
+      setSelectedId(firstUser.id);
+      setSearchValue(`${firstUser.firstName} ${firstUser.lastName}`);
+      pinInputRef.current?.focus();
+    }
+  };
+
+  const handlePinKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleLogin();
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-border" />
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
       </div>
     );
   }
@@ -98,43 +107,32 @@ export default function AuthPage() {
                 <UserCircle2 className="h-4 w-4 text-primary" />
                 Select Your Name
               </label>
-              <Popover open={open} onOpenChange={setOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={open}
-                    className="w-full justify-between"
-                  >
-                    {selectedName || "Search for your name..."}
-                    <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0">
-                  <Command>
-                    <CommandInput
-                      placeholder="Search by name..."
-                      value={searchValue}
-                      onValueChange={setSearchValue}
+              <div className="relative">
+                <Input
+                  type="text"
+                  value={searchValue}
+                  onChange={(e) => {
+                    setSearchValue(e.target.value);
+                    setSelectedId(null);
+                  }}
+                  onKeyDown={handleNameKeyDown}
+                  placeholder="Type to search your name..."
+                  list="user-names"
+                  className="w-full"
+                />
+                <datalist id="user-names">
+                  {filteredUsers?.map((user) => (
+                    <option 
+                      key={user.id} 
+                      value={`${user.firstName} ${user.lastName}`}
+                      onClick={() => {
+                        setSelectedId(user.id);
+                        setSearchValue(`${user.firstName} ${user.lastName}`);
+                      }}
                     />
-                    <CommandEmpty>No member found.</CommandEmpty>
-                    <CommandGroup>
-                      {sortedUsers?.map((user) => (
-                        <CommandItem
-                          key={user.id}
-                          value={`${user.firstName} ${user.lastName}`}
-                          onSelect={() => {
-                            setSelectedId(user.id);
-                            setOpen(false);
-                          }}
-                        >
-                          {user.firstName} {user.lastName}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+                  ))}
+                </datalist>
+              </div>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium flex items-center gap-2">
@@ -146,7 +144,9 @@ export default function AuthPage() {
                 maxLength={6}
                 value={pin}
                 onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+                onKeyDown={handlePinKeyDown}
                 placeholder="Enter 4-6 digit PIN"
+                ref={pinInputRef}
               />
             </div>
             <Button 
