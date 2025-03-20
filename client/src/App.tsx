@@ -10,6 +10,7 @@ import RosterPage from "@/pages/roster-page";
 import AdminPage from "@/pages/admin-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { FirstLoginModal } from "@/components/first-login-modal";
+import { SplashScreen } from "@/components/splash-screen";
 
 function Router() {
   return (
@@ -30,6 +31,7 @@ function App() {
         <Router />
         <FirstLoginModal />
         <Toaster />
+        <SplashScreen />
       </AuthProvider>
     </QueryClientProvider>
   );
