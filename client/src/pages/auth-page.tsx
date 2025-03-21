@@ -69,15 +69,20 @@ export default function AuthPage() {
     }
   };
 
-  const handleNameSelect = (e: ChangeEvent<HTMLInputElement>) => {
-    const selectedName = e.target.value;
+  const handleNameChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchValue(value);
+
+    // Check if the entered value exactly matches a user's full name
     const selectedUser = sortedUsers?.find(
-      user => `${user.firstName} ${user.lastName}` === selectedName
+      user => `${user.firstName} ${user.lastName}` === value
     );
+
     if (selectedUser) {
       setSelectedId(selectedUser.id);
-      setSearchValue(selectedName);
       pinInputRef.current?.focus();
+    } else {
+      setSelectedId(null);
     }
   };
 
@@ -123,7 +128,7 @@ export default function AuthPage() {
                 <Input
                   type="text"
                   value={searchValue}
-                  onChange={handleNameSelect}
+                  onChange={handleNameChange}
                   onKeyDown={handleNameKeyDown}
                   placeholder="Type to search your name..."
                   list="user-names"
