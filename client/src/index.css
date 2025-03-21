@@ -42,3 +42,31 @@
     transform: scale(1);
   }
 }
+
+/* Style datalist dropdown */
+input::-webkit-calendar-picker-indicator {
+  display: none !important;
+}
+
+/* For Webkit browsers */
+datalist {
+  display: none;
+}
+
+/* For modern browsers - control dropdown appearance */
+input[list]::-webkit-calendar-picker-indicator {
+  display: none;
+}
+
+option {
+  padding: 0.5rem;
+  cursor: pointer;
+}
+
+/* Custom dropdown styling */
+select, datalist {
+  max-height: 200px;
+  overflow-y: auto;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
