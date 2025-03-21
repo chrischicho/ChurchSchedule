@@ -69,30 +69,20 @@ export default function AuthPage() {
     }
   };
 
-  const handleNameChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleNameChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
-    setSearchValue(value);
-
-    // Check if the entered value exactly matches a user's full name
-    const selectedUser = sortedUsers?.find(
-      user => `${user.firstName} ${user.lastName}` === value
-    );
+    const userId = parseInt(value);
+    const selectedUser = sortedUsers?.find(user => user.id === userId);
 
     if (selectedUser) {
-      setSelectedId(selectedUser.id);
+      setSelectedId(userId);
+      setSearchValue(`${selectedUser.firstName} ${selectedUser.lastName}`);
       pinInputRef.current?.focus();
-    } else {
-      setSelectedId(null);
     }
   };
 
-  const handleNameKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && filteredUsers && filteredUsers.length > 0) {
-      const firstUser = filteredUsers[0];
-      setSelectedId(firstUser.id);
-      setSearchValue(`${firstUser.firstName} ${firstUser.lastName}`);
-      pinInputRef.current?.focus();
-    }
+  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setSearchValue(e.target.value.toLowerCase());
   };
 
   const handlePinKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -124,24 +114,27 @@ export default function AuthPage() {
                 <UserCircle2 className="h-4 w-4 text-primary" />
                 Select Your Name
               </label>
-              <div className="relative">
+              <div className="space-y-2">
                 <Input
                   type="text"
                   value={searchValue}
-                  onChange={handleNameChange}
-                  onKeyDown={handleNameKeyDown}
-                  placeholder="Type to search your name..."
-                  list="user-names"
+                  onChange={handleSearchChange}
+                  placeholder="Type to filter names..."
                   className="w-full"
                 />
-                <datalist id="user-names">
+                <select
+                  className="w-full h-[40px] rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus:outline-none focus:ring-1 focus:ring-ring"
+                  value={selectedId || ""}
+                  onChange={handleNameChange}
+                  size={6}
+                >
+                  <option value="" disabled>Select your name</option>
                   {filteredUsers?.map((user) => (
-                    <option
-                      key={user.id}
-                      value={`${user.firstName} ${user.lastName}`}
-                    />
+                    <option key={user.id} value={user.id}>
+                      {user.firstName} {user.lastName}
+                    </option>
                   ))}
-                </datalist>
+                </select>
               </div>
             </div>
             <div className="space-y-2">
