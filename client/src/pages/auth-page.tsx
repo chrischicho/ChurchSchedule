@@ -1,4 +1,4 @@
-import { useState, useRef, KeyboardEvent } from "react";
+import { useState, useRef, KeyboardEvent, ChangeEvent } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { Logo } from "@/components/logo";
@@ -69,6 +69,18 @@ export default function AuthPage() {
     }
   };
 
+  const handleNameSelect = (e: ChangeEvent<HTMLInputElement>) => {
+    const selectedName = e.target.value;
+    const selectedUser = sortedUsers?.find(
+      user => `${user.firstName} ${user.lastName}` === selectedName
+    );
+    if (selectedUser) {
+      setSelectedId(selectedUser.id);
+      setSearchValue(selectedName);
+      pinInputRef.current?.focus();
+    }
+  };
+
   const handleNameKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && filteredUsers && filteredUsers.length > 0) {
       const firstUser = filteredUsers[0];
@@ -111,10 +123,7 @@ export default function AuthPage() {
                 <Input
                   type="text"
                   value={searchValue}
-                  onChange={(e) => {
-                    setSearchValue(e.target.value);
-                    setSelectedId(null);
-                  }}
+                  onChange={handleNameSelect}
                   onKeyDown={handleNameKeyDown}
                   placeholder="Type to search your name..."
                   list="user-names"
@@ -125,10 +134,6 @@ export default function AuthPage() {
                     <option
                       key={user.id}
                       value={`${user.firstName} ${user.lastName}`}
-                      onClick={() => {
-                        setSelectedId(user.id);
-                        setSearchValue(`${user.firstName} ${user.lastName}`);
-                      }}
                     />
                   ))}
                 </datalist>
