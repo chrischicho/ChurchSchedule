@@ -69,20 +69,30 @@ export default function AuthPage() {
     }
   };
 
-  const handleNameChange = (e: ChangeEvent<HTMLSelectElement>) => {
+  const handleNameChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    const userId = parseInt(value);
-    const selectedUser = sortedUsers?.find(user => user.id === userId);
+    setSearchValue(value);
 
-    if (selectedUser) {
-      setSelectedId(userId);
-      setSearchValue(`${selectedUser.firstName} ${selectedUser.lastName}`);
+    // If exact match is found, select that user
+    const exactMatch = sortedUsers?.find(
+      user => `${user.firstName} ${user.lastName}`.toLowerCase() === value.toLowerCase()
+    );
+
+    if (exactMatch) {
+      setSelectedId(exactMatch.id);
       pinInputRef.current?.focus();
+    } else {
+      setSelectedId(null);
     }
   };
 
-  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setSearchValue(e.target.value.toLowerCase());
+  const handleNameKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && filteredUsers && filteredUsers.length > 0) {
+      const firstUser = filteredUsers[0];
+      setSelectedId(firstUser.id);
+      setSearchValue(`${firstUser.firstName} ${firstUser.lastName}`);
+      pinInputRef.current?.focus();
+    }
   };
 
   const handlePinKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -114,27 +124,24 @@ export default function AuthPage() {
                 <UserCircle2 className="h-4 w-4 text-primary" />
                 Select Your Name
               </label>
-              <div className="space-y-2">
+              <div className="relative">
                 <Input
                   type="text"
                   value={searchValue}
-                  onChange={handleSearchChange}
-                  placeholder="Type to filter names..."
-                  className="w-full"
-                />
-                <select
-                  className="w-full h-[40px] rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus:outline-none focus:ring-1 focus:ring-ring"
-                  value={selectedId || ""}
                   onChange={handleNameChange}
-                  size={6}
-                >
-                  <option value="" disabled>Select your name</option>
-                  {filteredUsers?.map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.firstName} {user.lastName}
-                    </option>
+                  onKeyDown={handleNameKeyDown}
+                  placeholder="Type your name..."
+                  className="w-full"
+                  list="user-names"
+                />
+                <datalist id="user-names">
+                  {filteredUsers?.slice(0, 6).map((user) => (
+                    <option
+                      key={user.id}
+                      value={`${user.firstName} ${user.lastName}`}
+                    />
                   ))}
-                </select>
+                </datalist>
               </div>
             </div>
             <div className="space-y-2">
