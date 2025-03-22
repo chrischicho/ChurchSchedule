@@ -76,6 +76,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
+      console.log("Creating member with data:", req.body);
       const user = await storage.createUser({
         firstName: req.body.firstName,
         lastName: req.body.lastName,
@@ -85,7 +86,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       res.status(201).json(user);
     } catch (err) {
-      res.status(500).json({ message: "Failed to create member" });
+      console.error("Error creating member:", err);
+      if (err instanceof Error) {
+        res.status(500).json({ message: `Failed to create member: ${err.message}` });
+      } else {
+        res.status(500).json({ message: "Failed to create member" });
+      }
     }
   });
 
