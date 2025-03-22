@@ -23,7 +23,8 @@ import {
 } from "@/components/ui/popover";
 import { format, startOfMonth, addMonths, eachDayOfInterval, isSunday, subMonths } from "date-fns";
 import { Availability, User, SpecialDay } from "@shared/schema";
-import { Loader2, ChevronLeft, ChevronRight, CalendarDays, Users, Calendar, LayoutGrid, List } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, Users, Calendar, LayoutGrid, List } from "lucide-react";
+import { ChurchLoader } from "@/components/church-loader";
 import { apiRequest } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 
@@ -171,7 +172,7 @@ export default function RosterPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-border" />
+        <ChurchLoader type="calendar" size="lg" text="Loading roster..." />
       </div>
     );
   }

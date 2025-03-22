@@ -1117,7 +1117,7 @@ export default function AdminPage() {
                     className="w-full"
                   >
                     {testEmailConfigMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      <ChurchLoader type="mail" size="xs" className="mr-2" />
                     ) : (
                       <span className="flex items-center">
                         <Settings className="h-4 w-4 mr-2" />
