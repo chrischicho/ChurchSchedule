@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { ZodError } from "zod";
 import { insertAvailabilitySchema, deadlineDaySchema, User } from "@shared/schema";
 import nodemailer from "nodemailer";
-import { renderToBuffer, Document as PDFDocument } from "@react-pdf/renderer";
+import { renderToBuffer } from "@react-pdf/renderer";
 import { createElement } from "react";
 import { RosterPDF } from "../client/src/components/roster-pdf";
 
