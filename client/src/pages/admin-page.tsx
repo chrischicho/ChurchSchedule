@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { format, addMonths, subMonths } from "date-fns";
 import { NavBar } from "@/components/nav-bar";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,6 +9,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,7 +33,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { User } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Loader2, Trash2, Mail, Settings } from "lucide-react";
+import { Loader2, Trash2, Mail, Settings, Calendar as CalendarIcon } from "lucide-react";
 
 export default function AdminPage() {
   const { user } = useAuth();
@@ -35,6 +45,8 @@ export default function AdminPage() {
   const [deadlineDay, setDeadlineDay] = useState(20); // Default to 20th
   const [emailAddress, setEmailAddress] = useState("");
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
+  const [viewType, setViewType] = useState<"card" | "simple">("card");
 
   const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/members"],
@@ -173,7 +185,11 @@ export default function AdminPage() {
   };
 
   const sendRosterEmailMutation = useMutation({
-    mutationFn: async (data: { email: string }) => {
+    mutationFn: async (data: { 
+      email: string; 
+      month: string;
+      viewType: "card" | "simple";
+    }) => {
       const res = await apiRequest("POST", "/api/admin/send-roster", data);
       const result = await res.json();
       // If there's an error message in the response, throw it
@@ -240,7 +256,11 @@ export default function AdminPage() {
 
     try {
       setIsSendingEmail(true);
-      await sendRosterEmailMutation.mutateAsync({ email: emailAddress });
+      await sendRosterEmailMutation.mutateAsync({ 
+        email: emailAddress,
+        month: format(selectedMonth, "yyyy-MM-dd"),
+        viewType: viewType
+      });
     } finally {
       setIsSendingEmail(false);
     }
@@ -422,8 +442,73 @@ export default function AdminPage() {
                     Send Roster
                   </Button>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  The current month's roster will be sent as a PDF attachment.
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Month</label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start text-left font-normal"
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {format(selectedMonth, "MMMM yyyy")}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <div className="flex p-2 gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="icon"
+                            onClick={() => setSelectedMonth(subMonths(selectedMonth, 1))}
+                          >
+                            ←
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="icon"
+                            onClick={() => setSelectedMonth(new Date())}
+                          >
+                            Today
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="icon"
+                            onClick={() => setSelectedMonth(addMonths(selectedMonth, 1))}
+                          >
+                            →
+                          </Button>
+                        </div>
+                        <Calendar
+                          mode="single"
+                          selected={selectedMonth}
+                          onSelect={(date) => date && setSelectedMonth(date)}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">View Style</label>
+                    <Select
+                      value={viewType}
+                      onValueChange={(value) => setViewType(value as "card" | "simple")}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a view type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="card">Card View</SelectItem>
+                        <SelectItem value="simple">Simple View</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <p className="text-sm text-muted-foreground mt-4">
+                  The roster for {format(selectedMonth, "MMMM yyyy")} will be sent as a PDF attachment.
                 </p>
                 <div className="mt-4">
                   <Button
