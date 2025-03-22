@@ -32,6 +32,14 @@ export const settings = pgTable("settings", {
   nameFormat: text("name_format").default("full").notNull(), // 'full' | 'first' | 'last' | 'initials'
 });
 
+export const specialDays = pgTable("special_days", {
+  id: serial("id").primaryKey(),
+  date: date("date").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  color: text("color").default("#FFD700").notNull(), // Default to gold color
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({ 
   id: true 
 });
@@ -46,6 +54,10 @@ export const insertSettingsSchema = createInsertSchema(settings).omit({
 });
 
 export const insertVerseSchema = createInsertSchema(verses).omit({
+  id: true
+});
+
+export const insertSpecialDaySchema = createInsertSchema(specialDays).omit({
   id: true
 });
 
@@ -69,3 +81,5 @@ export type Settings = typeof settings.$inferSelect;
 export type InsertSettings = z.infer<typeof insertSettingsSchema>;
 export type Verse = typeof verses.$inferSelect;
 export type InsertVerse = z.infer<typeof insertVerseSchema>;
+export type SpecialDay = typeof specialDays.$inferSelect;
+export type InsertSpecialDay = z.infer<typeof insertSpecialDaySchema>;
