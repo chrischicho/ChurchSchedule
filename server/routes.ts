@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { ZodError } from "zod";
-import { insertAvailabilitySchema, deadlineDaySchema, User, insertVerseSchema } from "@shared/schema";
+import { insertAvailabilitySchema, deadlineDaySchema, User, insertVerseSchema, insertSpecialDaySchema } from "@shared/schema";
 import nodemailer from "nodemailer";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createElement } from "react";
@@ -447,6 +447,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.sendStatus(200);
     } catch (err) {
       res.status(500).json({ message: "Failed to delete verse" });
+    }
+  });
+  
+  // Special Days endpoints
+  app.get("/api/special-days", async (req, res) => {
+    try {
+      const specialDays = await storage.getSpecialDays();
+      res.json(specialDays);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch special days" });
+    }
+  });
+  
+  app.get("/api/special-days/month", async (req, res) => {
+    try {
+      const year = parseInt(req.query.year as string) || new Date().getFullYear();
+      const month = parseInt(req.query.month as string) || new Date().getMonth() + 1;
+      
+      const specialDays = await storage.getSpecialDaysByMonth(year, month);
+      res.json(specialDays);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch special days for month" });
+    }
+  });
+  
+  app.get("/api/admin/special-days/:id", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user.isAdmin) {
+      return res.sendStatus(403);
+    }
+    
+    try {
+      const specialDay = await storage.getSpecialDay(parseInt(req.params.id));
+      if (!specialDay) {
+        return res.status(404).json({ message: "Special day not found" });
+      }
+      res.json(specialDay);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch special day" });
+    }
+  });
+  
+  app.post("/api/admin/special-days", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user.isAdmin) {
+      return res.sendStatus(403);
+    }
+    
+    try {
+      const data = insertSpecialDaySchema.parse(req.body);
+      const specialDay = await storage.createSpecialDay(data);
+      res.status(201).json(specialDay);
+    } catch (err) {
+      if (err instanceof ZodError) {
+        res.status(400).json({ message: "Invalid special day data" });
+      } else {
+        res.status(500).json({ message: "Failed to create special day" });
+      }
+    }
+  });
+  
+  app.patch("/api/admin/special-days/:id", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user.isAdmin) {
+      return res.sendStatus(403);
+    }
+    
+    try {
+      const id = parseInt(req.params.id);
+      const specialDay = await storage.updateSpecialDay(id, req.body);
+      res.json(specialDay);
+    } catch (err) {
+      if (err instanceof Error && err.message === "Special day not found") {
+        res.status(404).json({ message: err.message });
+      } else if (err instanceof ZodError) {
+        res.status(400).json({ message: "Invalid special day data" });
+      } else {
+        res.status(500).json({ message: "Failed to update special day" });
+      }
+    }
+  });
+  
+  app.delete("/api/admin/special-days/:id", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user.isAdmin) {
+      return res.sendStatus(403);
+    }
+    
+    try {
+      await storage.deleteSpecialDay(parseInt(req.params.id));
+      res.sendStatus(200);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to delete special day" });
     }
   });
 

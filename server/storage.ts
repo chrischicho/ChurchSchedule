@@ -1,13 +1,14 @@
 import { IStorage } from "./storage.interface";
 import { 
-  users, availability, settings, verses,
+  users, availability, settings, verses, specialDays,
   InsertUser, User, 
   InsertAvailability, Availability, 
   Settings,
-  Verse, InsertVerse
+  Verse, InsertVerse,
+  SpecialDay, InsertSpecialDay
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -223,6 +224,68 @@ export class DatabaseStorage implements IStorage {
   
   async deleteVerse(id: number): Promise<void> {
     await db.delete(verses).where(eq(verses.id, id));
+  }
+  
+  // Special Days operations
+  async getSpecialDays(): Promise<SpecialDay[]> {
+    return db.select().from(specialDays);
+  }
+  
+  async getSpecialDaysByMonth(year: number, month: number): Promise<SpecialDay[]> {
+    // Get all special days and filter in memory
+    const allSpecialDays = await db.select().from(specialDays);
+    
+    // Filter in memory for the specified month
+    return allSpecialDays.filter(day => {
+      const dayDate = new Date(day.date);
+      return dayDate.getFullYear() === year && dayDate.getMonth() === month - 1;
+    });
+  }
+  
+  async getSpecialDay(id: number): Promise<SpecialDay | undefined> {
+    const [specialDay] = await db.select().from(specialDays).where(eq(specialDays.id, id));
+    return specialDay;
+  }
+  
+  async createSpecialDay(specialDay: InsertSpecialDay): Promise<SpecialDay> {
+    // Convert date to ISO string format if it's a Date object
+    const dateStr = specialDay.date instanceof Date 
+      ? specialDay.date.toISOString().split('T')[0] 
+      : specialDay.date;
+    
+    const [created] = await db
+      .insert(specialDays)
+      .values({
+        ...specialDay,
+        date: dateStr,
+      })
+      .returning();
+      
+    return created;
+  }
+  
+  async updateSpecialDay(id: number, specialDay: Partial<InsertSpecialDay>): Promise<SpecialDay> {
+    // Convert date to ISO string format if it's a Date object and exists
+    const updateData: Partial<InsertSpecialDay> = { ...specialDay };
+    
+    if (updateData.date) {
+      updateData.date = updateData.date instanceof Date 
+        ? updateData.date.toISOString().split('T')[0] 
+        : updateData.date;
+    }
+    
+    const [updated] = await db
+      .update(specialDays)
+      .set(updateData)
+      .where(eq(specialDays.id, id))
+      .returning();
+      
+    if (!updated) throw new Error("Special day not found");
+    return updated;
+  }
+  
+  async deleteSpecialDay(id: number): Promise<void> {
+    await db.delete(specialDays).where(eq(specialDays.id, id));
   }
 }
 
