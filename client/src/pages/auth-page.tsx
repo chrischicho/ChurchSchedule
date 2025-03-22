@@ -37,11 +37,12 @@ export default function AuthPage() {
     return fullName.includes(searchValue.toLowerCase());
   });
 
-  // Redirect if already logged in
-  if (user) {
-    setLocation("/");
-    return null;
-  }
+  // Use useEffect for redirection instead of doing it during render
+  useEffect(() => {
+    if (user) {
+      setLocation("/");
+    }
+  }, [user, setLocation]);
 
   const handleLogin = async () => {
     if (!selectedId) {
