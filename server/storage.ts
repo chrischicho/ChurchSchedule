@@ -248,9 +248,9 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createSpecialDay(specialDay: InsertSpecialDay): Promise<SpecialDay> {
-    // Convert date to ISO string format if it's a Date object
-    const dateStr = specialDay.date instanceof Date 
-      ? specialDay.date.toISOString().split('T')[0] 
+    // Convert date to ISO string format if needed
+    const dateStr = typeof specialDay.date === 'object' && specialDay.date !== null
+      ? (specialDay.date as Date).toISOString().split('T')[0] 
       : specialDay.date;
     
     const [created] = await db
@@ -269,8 +269,8 @@ export class DatabaseStorage implements IStorage {
     const updateData: Partial<InsertSpecialDay> = { ...specialDay };
     
     if (updateData.date) {
-      updateData.date = updateData.date instanceof Date 
-        ? updateData.date.toISOString().split('T')[0] 
+      updateData.date = typeof updateData.date === 'object' && updateData.date !== null
+        ? (updateData.date as Date).toISOString().split('T')[0] 
         : updateData.date;
     }
     
