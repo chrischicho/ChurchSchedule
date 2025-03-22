@@ -477,6 +477,7 @@ export default function AdminPage() {
                 <p className="text-sm text-muted-foreground mt-4">
                   The roster for {format(selectedMonth, "MMMM yyyy")} will be sent as a PDF attachment.
                 </p>
+                {/* Email test button removed as requested - keep functionality for future use
                 <div className="mt-4">
                   <Button
                     variant="outline"
@@ -497,6 +498,7 @@ export default function AdminPage() {
                     Click to validate your email server connection without sending an email.
                   </p>
                 </div>
+                */}
               </div>
             </CardContent>
           </Card>
