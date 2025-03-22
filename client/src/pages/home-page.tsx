@@ -6,18 +6,24 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { format, startOfMonth, addMonths, eachDayOfInterval, isSunday, subMonths } from "date-fns";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Availability } from "@shared/schema";
+import { Availability, SpecialDay } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ChevronLeft, ChevronRight, Calendar, User, Sun } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { Badge } from "@/components/ui/badge";
 
 export default function HomePage() {
   const [selectedMonth, setSelectedMonth] = useState(startOfMonth(new Date()));
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const { data: availabilities, isLoading } = useQuery<Availability[]>({
+  const { data: availabilities, isLoading: isLoadingAvailability } = useQuery<Availability[]>({
     queryKey: ["/api/availability"],
+  });
+  
+  // Fetch special days
+  const { data: specialDays, isLoading: isLoadingSpecialDays } = useQuery<SpecialDay[]>({
+    queryKey: ["/api/special-days"],
   });
 
   const updateMutation = useMutation({
@@ -47,7 +53,8 @@ export default function HomePage() {
     end: addMonths(selectedMonth, 1),
   }).filter(day => isSunday(day));
 
-  if (isLoading) {
+  // Check if any data is still loading
+  if (isLoadingAvailability || isLoadingSpecialDays) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-border" />
@@ -106,18 +113,46 @@ export default function HomePage() {
                   format(sunday, "yyyy-MM-dd") &&
                   a.userId === user?.id
               );
-
+              
+              // Check if this Sunday is a special day
+              const specialDay = specialDays?.find(day => {
+                const specialDate = new Date(day.date);
+                return format(specialDate, "yyyy-MM-dd") === format(sunday, "yyyy-MM-dd");
+              });
+              
+              // Set card style based on special day
+              const cardStyle = specialDay 
+                ? { borderColor: specialDay.color, borderWidth: '2px' } 
+                : {};
+              
               return (
-                <Card key={sunday.toISOString()} className="group hover:shadow-md transition-shadow">
+                <Card 
+                  key={sunday.toISOString()} 
+                  className="group hover:shadow-md transition-shadow"
+                  style={cardStyle}
+                >
                   <CardContent className="flex items-center justify-between p-6">
                     <div className="flex items-center gap-3">
-                      <Sun className="h-5 w-5 text-primary/80" />
+                      <Sun 
+                        className="h-5 w-5" 
+                        style={{ color: specialDay?.color || 'var(--color-primary-80)' }}
+                      />
                       <div>
-                        <h3 className="font-medium">
+                        <h3 className="font-medium flex items-center gap-2">
                           {format(sunday, "MMMM d, yyyy")}
+                          {specialDay && (
+                            <Badge 
+                              style={{ 
+                                backgroundColor: specialDay.color,
+                                color: '#ffffff' 
+                              }}
+                            >
+                              {specialDay.name}
+                            </Badge>
+                          )}
                         </h3>
                         <p className="text-sm text-muted-foreground">
-                          Sunday Service
+                          {specialDay ? specialDay.description || 'Special Sunday' : 'Sunday Service'}
                         </p>
                       </div>
                     </div>

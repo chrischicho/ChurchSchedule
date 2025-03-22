@@ -22,9 +22,10 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { format, startOfMonth, addMonths, eachDayOfInterval, isSunday, subMonths } from "date-fns";
-import { Availability, User } from "@shared/schema";
+import { Availability, User, SpecialDay } from "@shared/schema";
 import { Loader2, ChevronLeft, ChevronRight, CalendarDays, Users, Calendar, LayoutGrid, List } from "lucide-react";
 import { apiRequest } from "@/lib/api";
+import { Badge } from "@/components/ui/badge";
 
 type ViewType = 'card' | 'table';
 
@@ -67,8 +68,13 @@ export default function RosterPage() {
   const { data: nameFormat } = useQuery<{ format: string }>({
     queryKey: ["/api/admin/name-format"],
   });
+  
+  // Fetch special days
+  const { data: specialDays, isLoading: isLoadingSpecialDays } = useQuery<SpecialDay[]>({
+    queryKey: ["/api/special-days"],
+  });
 
-  const isLoading = isLoadingAvailability || isLoadingUsers;
+  const isLoading = isLoadingAvailability || isLoadingUsers || isLoadingSpecialDays;
   
   // Process availability data to determine which months have data
   useEffect(() => {
@@ -175,19 +181,51 @@ export default function RosterPage() {
       {sundays.map((sunday) => {
         const date = format(sunday, "yyyy-MM-dd");
         const availableUsers = groupedAvailabilities[date] || [];
+        
+        // Check if this Sunday is a special day
+        const specialDay = specialDays?.find(day => {
+          const specialDate = new Date(day.date);
+          return format(specialDate, "yyyy-MM-dd") === format(sunday, "yyyy-MM-dd");
+        });
+        
+        // Set card style based on special day
+        const cardStyle = specialDay 
+          ? { borderColor: specialDay.color, borderWidth: '2px' } 
+          : {};
 
         return (
-          <div key={date} className="bg-card rounded-lg border shadow-sm overflow-hidden">
+          <div 
+            key={date} 
+            className="bg-card rounded-lg border shadow-sm overflow-hidden"
+            style={cardStyle}
+          >
             <div className="p-4 border-b bg-muted/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                <div 
+                  className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center"
+                  style={{ color: specialDay?.color || 'var(--color-primary)' }}
+                >
                   <Calendar className="h-5 w-5" />
                 </div>
-                <div>
-                  <h3 className="font-medium text-lg">
-                    {format(sunday, "MMMM d, yyyy")}
-                  </h3>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-medium text-lg flex items-center gap-2">
+                      {format(sunday, "MMMM d, yyyy")}
+                      {specialDay && (
+                        <Badge 
+                          style={{ 
+                            backgroundColor: specialDay.color,
+                            color: '#ffffff' 
+                          }}
+                        >
+                          {specialDay.name}
+                        </Badge>
+                      )}
+                    </h3>
+                  </div>
                   <p className="text-sm text-muted-foreground">
+                    {specialDay?.description && <span className="font-medium">{specialDay.description}</span>}
+                    {specialDay?.description && " • "}
                     {availableUsers.length} {availableUsers.length === 1 ? 'member' : 'members'} available
                   </p>
                 </div>
