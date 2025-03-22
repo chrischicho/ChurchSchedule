@@ -342,37 +342,6 @@ export default function AdminPage() {
         <div className="grid gap-8">
           <Card>
             <CardHeader>
-              <CardTitle>Add New Member</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <Input
-                  placeholder="First Name"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                />
-                <Input
-                  placeholder="Last Name"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                />
-              </div>
-              <Button
-                className="w-full"
-                onClick={handleCreateMember}
-                disabled={createMemberMutation.isPending}
-              >
-                {createMemberMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  "Add Member"
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
               <CardTitle>System Settings</CardTitle>
             </CardHeader>
             <CardContent>
@@ -419,47 +388,6 @@ export default function AdminPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Manage Members</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md border">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="p-4 text-left">Name</th>
-                      <th className="p-4 text-left">Role</th>
-                      <th className="p-4 text-left">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users?.map((member) => (
-                      <tr key={member.id} className="border-b">
-                        <td className="p-4">
-                          {member.firstName} {member.lastName}
-                        </td>
-                        <td className="p-4">
-                          {member.isAdmin ? "Admin" : "Member"}
-                        </td>
-                        <td className="p-4">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                            onClick={() => handleDeleteMember(member)}
-                            disabled={deleteMemberMutation.isPending || member.id === user?.id}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
           <Card>
             <CardHeader>
               <CardTitle>Send Roster</CardTitle>
@@ -569,6 +497,79 @@ export default function AdminPage() {
                     Click to validate your email server connection without sending an email.
                   </p>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Add New Member</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <Input
+                  placeholder="First Name"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                />
+                <Input
+                  placeholder="Last Name"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                />
+              </div>
+              <Button
+                className="w-full"
+                onClick={handleCreateMember}
+                disabled={createMemberMutation.isPending}
+              >
+                {createMemberMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Add Member"
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Manage Members</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-md border">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="p-4 text-left">Name</th>
+                      <th className="p-4 text-left">Role</th>
+                      <th className="p-4 text-left">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users?.map((member) => (
+                      <tr key={member.id} className="border-b">
+                        <td className="p-4">
+                          {member.firstName} {member.lastName}
+                        </td>
+                        <td className="p-4">
+                          {member.isAdmin ? "Admin" : "Member"}
+                        </td>
+                        <td className="p-4">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                            onClick={() => handleDeleteMember(member)}
+                            disabled={deleteMemberMutation.isPending || member.id === user?.id}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </CardContent>
           </Card>
