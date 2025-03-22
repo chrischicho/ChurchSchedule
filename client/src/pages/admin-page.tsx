@@ -181,11 +181,13 @@ function SpecialDaysList({
 function SpecialDayDialog({ 
   isOpen, 
   onClose, 
-  specialDay 
+  specialDay,
+  onSubmit
 }: { 
   isOpen: boolean; 
   onClose: () => void; 
-  specialDay: SpecialDay | null; 
+  specialDay: SpecialDay | null;
+  onSubmit: (data: SpecialDayFormValues, isEditing: boolean, specialDayId?: number) => Promise<void>;
 }) {
   const { toast } = useToast();
   const isEditing = !!specialDay;
@@ -228,42 +230,15 @@ function SpecialDayDialog({
     }
   }, [form, isOpen, isEditing, specialDay]);
   
-  // We'll use the parent component's mutations
+  // Use the onSubmit callback passed from parent
   const handleSubmit = async (data: SpecialDayFormValues) => {
     try {
       if (form.formState.isSubmitting) return;
       
       console.log(`Submitting special day data:`, JSON.stringify(data));
       
-      // Make sure date is properly formatted (ISO string for database)
-      const formattedData = {
-        ...data,
-        // Ensure date is serialized correctly
-        date: data.date.toISOString().split('T')[0]
-      };
-      
-      console.log(`Formatted data for submission:`, JSON.stringify(formattedData));
-      
-      if (isEditing && specialDay) {
-        // Use the updateSpecialDayMutation for existing special day
-        const mutationData = { 
-          id: specialDay.id, 
-          data: formattedData 
-        };
-        console.log(`Updating special day with data:`, JSON.stringify(mutationData));
-        
-        // This will be handled by the mutation
-        await updateSpecialDayMutation.mutateAsync(mutationData);
-      } else {
-        // Use the createSpecialDayMutation for new special day
-        console.log(`Creating new special day with data:`, JSON.stringify(formattedData));
-        
-        // This will be handled by the mutation
-        await createSpecialDayMutation.mutateAsync(formattedData);
-      }
-      
-      // Close dialog (success messages handled by mutations)
-      onClose();
+      // We'll pass the data to the parent component's handler
+      await onSubmit(data, isEditing, specialDay?.id);
       
     } catch (error) {
       console.error("Error saving special day:", error);
@@ -841,6 +816,30 @@ export default function AdminPage() {
                   isOpen={showSpecialDayDialog}
                   onClose={() => setShowSpecialDayDialog(false)}
                   specialDay={specialDayToEdit}
+                  onSubmit={async (data, isEditing, specialDayId) => {
+                    try {
+                      // Make sure date is properly formatted (ISO string for database)
+                      const formattedData = {
+                        ...data,
+                        // Ensure date is serialized correctly
+                        date: data.date.toISOString().split('T')[0]
+                      };
+                      
+                      if (isEditing && specialDayId) {
+                        // Use the updateSpecialDayMutation for existing special day
+                        await updateSpecialDayMutation.mutateAsync({ 
+                          id: specialDayId, 
+                          data: formattedData 
+                        });
+                      } else {
+                        // Use the createSpecialDayMutation for new special day
+                        await createSpecialDayMutation.mutateAsync(formattedData);
+                      }
+                    } catch (error) {
+                      console.error("Error handling special day submission:", error);
+                      throw error; // Re-throw to be handled by the dialog component
+                    }
+                  }}
                 />
                 
                 {/* Delete Confirmation */}
