@@ -182,12 +182,14 @@ function SpecialDayDialog({
   isOpen, 
   onClose, 
   specialDay,
-  onSubmit
+  createMutation,
+  updateMutation
 }: { 
   isOpen: boolean; 
   onClose: () => void; 
   specialDay: SpecialDay | null;
-  onSubmit: (data: SpecialDayFormValues, isEditing: boolean, specialDayId?: number) => Promise<void>;
+  createMutation: any;
+  updateMutation: any;
 }) {
   const { toast } = useToast();
   const isEditing = !!specialDay;
@@ -230,15 +232,30 @@ function SpecialDayDialog({
     }
   }, [form, isOpen, isEditing, specialDay]);
   
-  // Use the onSubmit callback passed from parent
   const handleSubmit = async (data: SpecialDayFormValues) => {
     try {
       if (form.formState.isSubmitting) return;
       
       console.log(`Submitting special day data:`, JSON.stringify(data));
       
-      // We'll pass the data to the parent component's handler
-      await onSubmit(data, isEditing, specialDay?.id);
+      // Make sure date is properly formatted (ISO string for database)
+      const formattedData = {
+        ...data,
+        date: data.date.toISOString().split('T')[0]
+      };
+      
+      console.log('Formatted data:', formattedData);
+      
+      if (isEditing && specialDay) {
+        // Use update mutation
+        await updateMutation.mutateAsync({ 
+          id: specialDay.id, 
+          data: formattedData 
+        });
+      } else {
+        // Use create mutation
+        await createMutation.mutateAsync(formattedData);
+      }
       
     } catch (error) {
       console.error("Error saving special day:", error);
@@ -392,12 +409,14 @@ export default function AdminPage() {
   
   // Special days queries and mutations
   const createSpecialDayMutation = useMutation({
-    mutationFn: async (data: SpecialDayFormValues) => {
+    mutationFn: async (data: any) => {
+      console.log("Creating special day with data:", data);
       const res = await apiRequest("POST", "/api/admin/special-days", data);
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/special-days"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/special-days/month"] });
       setShowSpecialDayDialog(false);
       toast({
         title: "Success",
@@ -405,6 +424,7 @@ export default function AdminPage() {
       });
     },
     onError: (error: Error) => {
+      console.error("Error creating special day:", error);
       toast({
         title: "Error",
         description: error.message,
@@ -414,12 +434,14 @@ export default function AdminPage() {
   });
   
   const updateSpecialDayMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number, data: Partial<SpecialDayFormValues> }) => {
+    mutationFn: async ({ id, data }: { id: number, data: any }) => {
+      console.log(`Updating special day ${id} with data:`, data);
       const res = await apiRequest("PATCH", `/api/admin/special-days/${id}`, data);
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/special-days"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/special-days/month"] });
       setShowSpecialDayDialog(false);
       toast({
         title: "Success",
@@ -427,6 +449,7 @@ export default function AdminPage() {
       });
     },
     onError: (error: Error) => {
+      console.error("Error updating special day:", error);
       toast({
         title: "Error",
         description: error.message,
@@ -816,30 +839,8 @@ export default function AdminPage() {
                   isOpen={showSpecialDayDialog}
                   onClose={() => setShowSpecialDayDialog(false)}
                   specialDay={specialDayToEdit}
-                  onSubmit={async (data, isEditing, specialDayId) => {
-                    try {
-                      // Make sure date is properly formatted (ISO string for database)
-                      const formattedData = {
-                        ...data,
-                        // Ensure date is serialized correctly
-                        date: data.date.toISOString().split('T')[0]
-                      };
-                      
-                      if (isEditing && specialDayId) {
-                        // Use the updateSpecialDayMutation for existing special day
-                        await updateSpecialDayMutation.mutateAsync({ 
-                          id: specialDayId, 
-                          data: formattedData 
-                        });
-                      } else {
-                        // Use the createSpecialDayMutation for new special day
-                        await createSpecialDayMutation.mutateAsync(formattedData);
-                      }
-                    } catch (error) {
-                      console.error("Error handling special day submission:", error);
-                      throw error; // Re-throw to be handled by the dialog component
-                    }
-                  }}
+                  createMutation={createSpecialDayMutation}
+                  updateMutation={updateSpecialDayMutation}
                 />
                 
                 {/* Delete Confirmation */}
