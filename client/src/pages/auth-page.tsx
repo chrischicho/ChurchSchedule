@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { User } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
 import { UserCircle2, Lock } from "lucide-react";
+import { VerseDisplay } from "@/components/verse-display";
 
 export default function AuthPage() {
   const [, setLocation] = useLocation();
@@ -165,6 +166,9 @@ export default function AuthPage() {
             >
               Log In
             </Button>
+            
+            {/* Display random Bible verse */}
+            <VerseDisplay className="mt-6" category="serving" />
           </CardContent>
         </Card>
       </div>

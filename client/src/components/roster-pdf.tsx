@@ -1,7 +1,8 @@
 import React from "react";
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import { format } from "date-fns";
-import { User } from "@shared/schema";
+import { User, Verse } from "@shared/schema";
+import { PDFVerse } from "./pdf-verse";
 
 const styles = StyleSheet.create({
   page: {
@@ -94,9 +95,10 @@ interface RosterPDFProps {
     [key: string]: User[];
   };
   viewType?: "card" | "simple";
+  verse?: Verse;
 }
 
-export function RosterPDF({ month, rosterData, viewType = "card" }: RosterPDFProps) {
+export function RosterPDF({ month, rosterData, viewType = "card", verse }: RosterPDFProps) {
   // Sort users consistently by last name, then first name
   const sortUsers = (a: User, b: User) => {
     const lastNameCompare = a.lastName.localeCompare(b.lastName);
@@ -163,7 +165,7 @@ export function RosterPDF({ month, rosterData, viewType = "card" }: RosterPDFPro
               return (
                 <View key={dateStr} style={styles.tableRow}>
                   <Text style={styles.dateCell}>
-                    {format(date, "MM/dd/yyyy")}
+                    {format(date, "dd/MM/yyyy")}
                   </Text>
                   <Text style={styles.tableCell}>
                     {users.length > 0 
@@ -174,6 +176,9 @@ export function RosterPDF({ month, rosterData, viewType = "card" }: RosterPDFPro
                 </View>
               );
             })}
+            
+            {/* Display verse at the bottom of the table if provided */}
+            {verse && <PDFVerse verse={verse} />}
           </View>
         )}
       </Page>
