@@ -1,5 +1,11 @@
 import { IStorage } from "./storage.interface";
-import { users, availability, settings, InsertUser, User, InsertAvailability, Availability, Settings } from "@shared/schema";
+import { 
+  users, availability, settings, verses,
+  InsertUser, User, 
+  InsertAvailability, Availability, 
+  Settings,
+  Verse, InsertVerse
+} from "@shared/schema";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
 import session from "express-session";
@@ -190,6 +196,33 @@ export class DatabaseStorage implements IStorage {
       default:
         return `${user.firstName} ${user.lastName}`;
     }
+  }
+  
+  // Verse operations
+  async getAllVerses(): Promise<Verse[]> {
+    return db.select().from(verses);
+  }
+  
+  async getRandomVerse(category: string = 'serving'): Promise<Verse | undefined> {
+    const allVerses = await db.select().from(verses).where(eq(verses.category, category));
+    if (allVerses.length === 0) return undefined;
+    
+    // Get a random verse
+    const randomIndex = Math.floor(Math.random() * allVerses.length);
+    return allVerses[randomIndex];
+  }
+  
+  async createVerse(verse: InsertVerse): Promise<Verse> {
+    const [created] = await db
+      .insert(verses)
+      .values(verse)
+      .returning();
+      
+    return created;
+  }
+  
+  async deleteVerse(id: number): Promise<void> {
+    await db.delete(verses).where(eq(verses.id, id));
   }
 }
 
