@@ -7,6 +7,7 @@ import { insertAvailabilitySchema, deadlineDaySchema, User, insertVerseSchema } 
 import nodemailer from "nodemailer";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createElement } from "react";
+import { format } from "date-fns";
 import { RosterPDF } from "../client/src/components/roster-pdf";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -202,10 +203,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get roster data
       const availabilityRecords = await storage.getAvailability();
+      console.log("Total availability records:", availabilityRecords.length);
+      console.log("Available records:", availabilityRecords.filter(r => r.isAvailable).length);
       
       // Use the selected month or default to current month
       const selectedMonth = month ? new Date(month) : new Date();
+      console.log("Selected month:", selectedMonth.toISOString());
+      
       const allUsers = await storage.getAllUsers();
+      console.log("Total users:", allUsers.length);
       
       // Group users by service date
       const rosterData: { [key: string]: User[] } = {};
@@ -215,28 +221,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Only include available users
         if (!record.isAvailable) continue;
         
-        const date = record.serviceDate.toString();
-        if (!rosterData[date]) {
-          rosterData[date] = [];
+        // Make sure we're working with proper Date objects
+        const serviceDate = new Date(record.serviceDate);
+        
+        // Use ISO string for consistent key format
+        const isoDateStr = serviceDate.toISOString();
+        
+        if (!rosterData[isoDateStr]) {
+          rosterData[isoDateStr] = [];
         }
         
         // Find the corresponding user
         const user = allUsers.find(u => u.id === record.userId);
         if (user) {
-          rosterData[date].push(user);
+          rosterData[isoDateStr].push(user);
         }
       }
-
+      
+      console.log("Service dates with available users:", Object.keys(rosterData).length);
+      
       // Filter availability records for the selected month
       const filteredRosterData: { [key: string]: User[] } = {};
       const selectedMonthStr = selectedMonth.getMonth();
       const selectedYearStr = selectedMonth.getFullYear();
       
+      console.log("Filtering for month:", selectedMonthStr, "year:", selectedYearStr);
+      
       // Filter out service dates that don't match the selected month
-      Object.entries(rosterData).forEach(([dateStr, users]) => {
-        const date = new Date(dateStr);
+      Object.entries(rosterData).forEach(([isoDateStr, users]) => {
+        const date = new Date(isoDateStr);
+        console.log("Checking date:", format(date, "yyyy-MM-dd"), "Month:", date.getMonth(), "Year:", date.getFullYear());
+        
         if (date.getMonth() === selectedMonthStr && date.getFullYear() === selectedYearStr) {
-          filteredRosterData[dateStr] = users;
+          // Keep using ISO string format consistently
+          filteredRosterData[isoDateStr] = users;
+          console.log("Added date", format(date, "yyyy-MM-dd"), "with", users.length, "users");
         }
       });
       
@@ -244,6 +263,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const verse = await storage.getRandomVerse('serving');
       
       // Create the PDF document with our data
+      console.log("Final filteredRosterData:", JSON.stringify(filteredRosterData));
+      
       const rosterPDFElement = createElement(RosterPDF, { 
         month: selectedMonth, 
         rosterData: filteredRosterData,
