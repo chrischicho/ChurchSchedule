@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { User } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
 import { UserCircle2, Lock } from "lucide-react";
+import { ChurchLoader } from "@/components/church-loader";
 import { VerseDisplay } from "@/components/verse-display";
 
 export default function AuthPage() {
@@ -18,6 +19,7 @@ export default function AuthPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [searchValue, setSearchValue] = useState("");
   const [pin, setPin] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const pinInputRef = useRef<HTMLInputElement>(null);
 
   const { data: users, isLoading } = useQuery<User[]>({
@@ -64,10 +66,12 @@ export default function AuthPage() {
     }
 
     try {
+      setIsLoggingIn(true);
       await login(selectedId, pin);
       setLocation("/");
     } catch (error) {
       // Error handling is done in useAuth
+      setIsLoggingIn(false);
     }
   };
 
@@ -106,7 +110,7 @@ export default function AuthPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+        <ChurchLoader type="users" size="lg" text="Loading user data..." />
       </div>
     );
   }
@@ -165,8 +169,16 @@ export default function AuthPage() {
             <Button
               className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
               onClick={handleLogin}
+              disabled={isLoggingIn}
             >
-              Log In
+              {isLoggingIn ? (
+                <div className="flex items-center gap-2">
+                  <ChurchLoader type="cross" size="xs" className="text-white" />
+                  <span>Logging in...</span>
+                </div>
+              ) : (
+                "Log In"
+              )}
             </Button>
             
             {/* Display random Bible verse */}
