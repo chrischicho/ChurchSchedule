@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { ZodError } from "zod";
 import { insertAvailabilitySchema, deadlineDaySchema, User } from "@shared/schema";
 import nodemailer from "nodemailer";
-import { renderToBuffer } from "@react-pdf/renderer";
+import { renderToBuffer, Document as PDFDocument } from "@react-pdf/renderer";
 import { createElement } from "react";
 import { RosterPDF } from "../client/src/components/roster-pdf";
 
@@ -139,10 +139,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       console.log("Testing email configuration");
+      // For Gmail with port 465, we should set secure to true
+      const port = parseInt(process.env.SMTP_PORT || "587");
+      const secure = port === 465 || process.env.SMTP_SECURE === "true";
+      
       console.log("Email settings:", {
         host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT || "587"),
-        secure: process.env.SMTP_SECURE === "true",
+        port,
+        secure,
         user: process.env.SMTP_USER ? "Set" : "Not set",
         pass: process.env.SMTP_PASS ? "Set" : "Not set",
         from: process.env.SMTP_FROM,
@@ -151,14 +155,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Configure email transporter
       const transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT || "587"),
-        secure: process.env.SMTP_SECURE === "true",
+        port,
+        secure,
         auth: {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS,
         },
         debug: true,
-        logger: true // This will log details to the console
+        logger: true, // This will log details to the console
+        tls: {
+          // Disable TLS verification (not recommended for production)
+          rejectUnauthorized: false
+        }
       });
       
       try {
@@ -217,23 +225,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Generate PDF
-      const pdfBuffer = await renderToBuffer(
-        createElement(RosterPDF, { month: currentMonth, rosterData: rosterData })
-      );
+      // Create the PDF document with our data
+      const rosterPDFElement = createElement(RosterPDF, { 
+        month: currentMonth, 
+        rosterData: rosterData 
+      });
+      
+      // Generate PDF buffer from the component
+      const pdfBuffer = await renderToBuffer(rosterPDFElement);
 
       try {
+        // For Gmail with port 465, we should set secure to true
+        const port = parseInt(process.env.SMTP_PORT || "587");
+        const secure = port === 465 || process.env.SMTP_SECURE === "true";
+        
         console.log("Setting up email with", {
           host: process.env.SMTP_HOST,
-          port: parseInt(process.env.SMTP_PORT || "587"),
-          secure: process.env.SMTP_SECURE === "true",
+          port,
+          secure,
+          user: process.env.SMTP_USER ? "Set" : "Not set",
+          pass: process.env.SMTP_PASS ? "Set" : "Not set",
         });
         
         // Configure email transporter
         const transporter = nodemailer.createTransport({
           host: process.env.SMTP_HOST,
-          port: parseInt(process.env.SMTP_PORT || "587"),
-          secure: process.env.SMTP_SECURE === "true",
+          port,
+          secure,
           auth: {
             user: process.env.SMTP_USER,
             pass: process.env.SMTP_PASS,
@@ -243,7 +261,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Increase timeout to allow for slower connections
           connectionTimeout: 10000, // 10 seconds
           greetingTimeout: 10000,
-          socketTimeout: 30000 // 30 seconds
+          socketTimeout: 30000, // 30 seconds
+          tls: {
+            // Do not fail on invalid certs
+            rejectUnauthorized: false
+          }
         });
 
         // Verify the connection configuration
