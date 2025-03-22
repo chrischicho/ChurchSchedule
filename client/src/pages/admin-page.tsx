@@ -301,10 +301,17 @@ function SpecialDayDialog({
     try {
       setIsPending(true);
       
-      // Format the date for API submission
+      // Format the date for API submission and handle timezone offset
+      // Get the date parts and create a date string in YYYY-MM-DD format
+      // that doesn't get affected by timezone conversion
+      const year = data.date.getFullYear();
+      const month = String(data.date.getMonth() + 1).padStart(2, '0');
+      const day = String(data.date.getDate()).padStart(2, '0');
+      const dateString = `${year}-${month}-${day}`;
+      
       const formattedData = {
         ...data,
-        date: data.date.toISOString().split('T')[0]
+        date: dateString
       };
       
       console.log("Submitting data:", formattedData);
