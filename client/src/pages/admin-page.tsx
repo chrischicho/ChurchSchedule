@@ -1039,7 +1039,7 @@ export default function AdminPage() {
                     className="whitespace-nowrap"
                   >
                     {isSendingEmail ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      <ChurchLoader type="mail" size="xs" className="mr-2" />
                     ) : (
                       <Mail className="h-4 w-4 mr-2" />
                     )}
@@ -1157,7 +1157,7 @@ export default function AdminPage() {
                 disabled={createMemberMutation.isPending}
               >
                 {createMemberMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <ChurchLoader type="users" size="xs" className="mr-2" />
                 ) : (
                   "Add Member"
                 )}
