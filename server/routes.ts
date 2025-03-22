@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { ZodError } from "zod";
-import { insertAvailabilitySchema, deadlineDaySchema, User } from "@shared/schema";
+import { insertAvailabilitySchema, deadlineDaySchema, User, insertVerseSchema } from "@shared/schema";
 import nodemailer from "nodemailer";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createElement } from "react";
@@ -361,6 +361,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(availability);
     } catch (err) {
       res.status(500).json({ message: "Failed to fetch availability" });
+    }
+  });
+  
+  // Verse endpoints
+  app.get("/api/verse/random", async (req, res) => {
+    try {
+      const category = req.query.category as string || 'serving';
+      const verse = await storage.getRandomVerse(category);
+      
+      if (!verse) {
+        return res.status(404).json({ message: "No verses found" });
+      }
+      
+      res.json(verse);
+    } catch (err) {
+      console.error("Error fetching random verse:", err);
+      res.status(500).json({ message: "Failed to fetch random verse" });
+    }
+  });
+
+  app.get("/api/admin/verses", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user.isAdmin) {
+      return res.sendStatus(403);
+    }
+
+    try {
+      const verses = await storage.getAllVerses();
+      res.json(verses);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch verses" });
+    }
+  });
+
+  app.post("/api/admin/verses", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user.isAdmin) {
+      return res.sendStatus(403);
+    }
+
+    try {
+      const data = insertVerseSchema.parse(req.body);
+      const verse = await storage.createVerse(data);
+      res.status(201).json(verse);
+    } catch (err) {
+      if (err instanceof ZodError) {
+        res.status(400).json({ message: "Invalid verse data" });
+      } else {
+        res.status(500).json({ message: "Failed to create verse" });
+      }
+    }
+  });
+
+  app.delete("/api/admin/verses/:id", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user.isAdmin) {
+      return res.sendStatus(403);
+    }
+
+    try {
+      await storage.deleteVerse(parseInt(req.params.id));
+      res.sendStatus(200);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to delete verse" });
     }
   });
 
