@@ -1,9 +1,9 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Church, Cross, BookOpen, Bell, Users, Calendar, Music } from "lucide-react";
+import { Church, Cross, BookOpen, Bell, Users, Calendar, Music, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type LoaderType = "church" | "cross" | "bible" | "bell" | "users" | "calendar" | "music";
+export type LoaderType = "church" | "cross" | "bible" | "bell" | "users" | "calendar" | "music" | "mail";
 
 interface ChurchLoaderProps {
   type?: LoaderType;
@@ -106,6 +106,8 @@ export function ChurchLoader({
         return Calendar;
       case "music":
         return Music;
+      case "mail":
+        return Mail;
       case "church":
       default:
         return Church;
