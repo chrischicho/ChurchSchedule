@@ -116,8 +116,9 @@ export default function AuthPage() {
       <div className="flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle className="flex justify-center">
+            <CardTitle className="flex flex-col items-center justify-center">
               <Logo />
+              <p className="text-sm text-muted-foreground mt-2">El Gibbor International Family Church</p>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">

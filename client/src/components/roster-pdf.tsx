@@ -12,15 +12,28 @@ const styles = StyleSheet.create({
   },
   header: {
     fontSize: 24,
-    marginBottom: 20,
+    marginBottom: 5,
     textAlign: "center",
     color: "#1a1a1a",
+  },
+  churchName: {
+    fontSize: 16,
+    marginBottom: 20,
+    textAlign: "center",
+    color: "#444444",
   },
   subHeader: {
     fontSize: 14,
     marginBottom: 10,
     color: "#666666",
     textAlign: "center",
+  },
+  copyright: {
+    position: "absolute",
+    bottom: 30,
+    right: 30,
+    fontSize: 10,
+    color: "#999999",
   },
   section: {
     margin: 10,
@@ -130,10 +143,12 @@ export function RosterPDF({ month, rosterData, viewType = "card", verse, ...prop
   return (
     <Document {...props}>
       <Page size="A4" style={styles.page}>
-        <Text style={styles.header}>ElServe Roster</Text>
+        <Text style={styles.header}>ElServe</Text>
+        <Text style={styles.churchName}>El Gibbor IFC Sunday Roster</Text>
         <Text style={styles.subHeader}>
           {format(month, "MMMM yyyy")}
         </Text>
+        <Text style={styles.copyright}>ElGibbor IFC ©</Text>
 
         {viewType === "card" ? (
           // Card View
