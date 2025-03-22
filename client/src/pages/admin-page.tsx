@@ -54,7 +54,9 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, Trash2, Mail, Settings, Calendar as CalendarIcon, Plus, Edit, Star } from "lucide-react";
+import { Trash2, Mail, Settings, Calendar as CalendarIcon, Plus, Edit, Star } from "lucide-react";
+import { ChurchLoader } from "@/components/church-loader";
+import { LoaderOverlay } from "@/components/loader-overlay";
 
 // Form schema for special days
 const specialDaySchema = z.object({
@@ -127,7 +129,15 @@ function SpecialDaysList({
   }, [allSpecialDays, viewMode, selectedMonth]);
 
   if (isLoading) {
-    return <div className="flex justify-center p-4"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+    return (
+      <div className="flex justify-center p-6">
+        <ChurchLoader 
+          type="calendar" 
+          size="md" 
+          text="Loading special days..." 
+        />
+      </div>
+    );
   }
 
   // Controls for switching view modes and months
@@ -474,7 +484,7 @@ function SpecialDayDialog({
             <DialogFooter>
               <Button type="submit" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <ChurchLoader type="church" size="xs" className="mr-2" />
                 ) : null}
                 {isEditing ? "Update" : "Create"}
               </Button>
@@ -853,7 +863,11 @@ export default function AdminPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-border" />
+        <ChurchLoader 
+          type="users" 
+          size="lg" 
+          text="Loading admin panel..." 
+        />
       </div>
     );
   }

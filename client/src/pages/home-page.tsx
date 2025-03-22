@@ -8,9 +8,11 @@ import { format, startOfMonth, addMonths, eachDayOfInterval, isSunday, subMonths
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Availability, SpecialDay } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ChevronLeft, ChevronRight, Calendar, User, Sun } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, User, Sun } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Badge } from "@/components/ui/badge";
+import { ChurchLoader } from "@/components/church-loader";
+import { LoaderOverlay } from "@/components/loader-overlay";
 
 export default function HomePage() {
   const [selectedMonth, setSelectedMonth] = useState(startOfMonth(new Date()));
@@ -57,13 +59,26 @@ export default function HomePage() {
   if (isLoadingAvailability || isLoadingSpecialDays) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-border" />
+        <ChurchLoader 
+          type="calendar" 
+          size="lg" 
+          text="Loading your availability..." 
+        />
       </div>
     );
   }
+  
+  // Show overlay during availability updates
+  const isUpdating = updateMutation.isPending;
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/20">
+      {/* Show loading overlay when updating availability */}
+      <LoaderOverlay 
+        isLoading={isUpdating} 
+        loadingText="Updating your availability..." 
+        type="bell"
+      />
       <NavBar />
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
