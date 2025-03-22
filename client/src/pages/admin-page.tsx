@@ -21,9 +21,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { User, Settings } from "@shared/schema";
+import { User } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Loader2, Trash2, Mail } from "lucide-react";
+import { Loader2, Trash2, Mail, Settings } from "lucide-react";
 
 export default function AdminPage() {
   const { user } = useAuth();
@@ -40,7 +40,7 @@ export default function AdminPage() {
     queryKey: ["/api/admin/members"],
   });
 
-  const { data: settings } = useQuery<Settings>({
+  const { data: settings } = useQuery<{ deadlineDay: number, nameFormat: string }>({
     queryKey: ["/api/admin/settings"],
   });
 
@@ -117,7 +117,7 @@ export default function AdminPage() {
   });
 
   const handleDeleteMember = (member: User) => {
-    if (member.id === user.id) {
+    if (user && member.id === user.id) {
       toast({
         title: "Error",
         description: "You cannot delete your own account",
@@ -175,7 +175,12 @@ export default function AdminPage() {
   const sendRosterEmailMutation = useMutation({
     mutationFn: async (data: { email: string }) => {
       const res = await apiRequest("POST", "/api/admin/send-roster", data);
-      return res.json();
+      const result = await res.json();
+      // If there's an error message in the response, throw it
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      return result;
     },
     onSuccess: () => {
       toast({
@@ -185,8 +190,38 @@ export default function AdminPage() {
       setEmailAddress("");
     },
     onError: (error: Error) => {
+      console.error("Email sending error:", error);
       toast({
-        title: "Error",
+        title: "Error Sending Email",
+        description: `Failed to send the roster: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  const testEmailConfigMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("GET", "/api/admin/test-email");
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        toast({
+          title: "Email Configuration Valid",
+          description: "Your email settings are correctly configured.",
+        });
+      } else {
+        toast({
+          title: "Email Configuration Invalid",
+          description: data.details || "Email configuration test failed",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error: Error) => {
+      console.error("Email testing error:", error);
+      toast({
+        title: "Email Configuration Test Failed",
         description: error.message,
         variant: "destructive",
       });
@@ -348,7 +383,7 @@ export default function AdminPage() {
                             size="sm"
                             className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
                             onClick={() => handleDeleteMember(member)}
-                            disabled={deleteMemberMutation.isPending || member.id === user.id}
+                            disabled={deleteMemberMutation.isPending || member.id === user?.id}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -390,13 +425,37 @@ export default function AdminPage() {
                 <p className="text-sm text-muted-foreground">
                   The current month's roster will be sent as a PDF attachment.
                 </p>
+                <div className="mt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => testEmailConfigMutation.mutate()}
+                    disabled={testEmailConfigMutation.isPending}
+                    className="w-full"
+                  >
+                    {testEmailConfigMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <span className="flex items-center">
+                        <Settings className="h-4 w-4 mr-2" />
+                        Test Email Configuration
+                      </span>
+                    )}
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Click to validate your email server connection without sending an email.
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
         </div>
       </main>
 
-      <AlertDialog open={!!memberToDelete} onOpenChange={setMemberToDelete}>
+      <AlertDialog 
+        open={!!memberToDelete} 
+        onOpenChange={(open) => {
+          if (!open) setMemberToDelete(null);
+        }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
