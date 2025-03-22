@@ -195,14 +195,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const { email } = req.body;
+      const { email, month, viewType } = req.body;
       if (!email) {
         return res.status(400).json({ message: "Email address is required" });
       }
 
       // Get roster data
       const availabilityRecords = await storage.getAvailability();
-      const currentMonth = new Date();
+      
+      // Use the selected month or default to current month
+      const selectedMonth = month ? new Date(month) : new Date();
       const allUsers = await storage.getAllUsers();
       
       // Group users by service date
@@ -225,10 +227,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Filter availability records for the selected month
+      const filteredRosterData: { [key: string]: User[] } = {};
+      const selectedMonthStr = selectedMonth.getMonth();
+      const selectedYearStr = selectedMonth.getFullYear();
+      
+      // Filter out service dates that don't match the selected month
+      Object.entries(rosterData).forEach(([dateStr, users]) => {
+        const date = new Date(dateStr);
+        if (date.getMonth() === selectedMonthStr && date.getFullYear() === selectedYearStr) {
+          filteredRosterData[dateStr] = users;
+        }
+      });
+      
       // Create the PDF document with our data
       const rosterPDFElement = createElement(RosterPDF, { 
-        month: currentMonth, 
-        rosterData: rosterData 
+        month: selectedMonth, 
+        rosterData: filteredRosterData,
+        viewType: viewType || "card" 
       });
       
       // Generate PDF buffer from the component
@@ -272,15 +288,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await transporter.verify();
         console.log("Email transporter verified successfully");
         
+        // Format month name and year for the email subject
+        const monthName = selectedMonth.toLocaleString('default', { month: 'long' });
+        const year = selectedMonth.getFullYear();
+        
         // Send email
         const info = await transporter.sendMail({
           from: process.env.SMTP_FROM,
           to: email,
-          subject: `Church Service Roster - ${currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}`,
-          text: "Please find attached the church service roster for this month.",
+          subject: `Church Service Roster - ${monthName} ${year}`,
+          text: `Please find attached the church service roster for ${monthName} ${year}.`,
           attachments: [
             {
-              filename: 'roster.pdf',
+              filename: `roster-${monthName.toLowerCase()}-${year}.pdf`,
               content: pdfBuffer,
             },
           ],
