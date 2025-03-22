@@ -98,7 +98,7 @@ interface RosterPDFProps {
   verse?: Verse;
 }
 
-export function RosterPDF({ month, rosterData, viewType = "card", verse }: RosterPDFProps) {
+export function RosterPDF({ month, rosterData, viewType = "card", verse, ...props }: RosterPDFProps & React.ComponentProps<typeof Document>) {
   // Sort users consistently by last name, then first name
   const sortUsers = (a: User, b: User) => {
     const lastNameCompare = a.lastName.localeCompare(b.lastName);
@@ -116,7 +116,7 @@ export function RosterPDF({ month, rosterData, viewType = "card", verse }: Roste
   const formatName = (user: User) => `${user.firstName} ${user.lastName}`;
 
   return (
-    <Document>
+    <Document {...props}>
       <Page size="A4" style={styles.page}>
         <Text style={styles.header}>ElServe Roster</Text>
         <Text style={styles.subHeader}>
@@ -125,31 +125,40 @@ export function RosterPDF({ month, rosterData, viewType = "card", verse }: Roste
 
         {viewType === "card" ? (
           // Card View
-          sortedDates.map(date => {
-            const dateStr = date.toString();
-            const users = rosterData[dateStr] || [];
-            
-            return (
-              <View key={dateStr} style={styles.section}>
-                <Text style={styles.serviceDate}>
-                  {format(date, "EEEE, MMMM d, yyyy")}
-                </Text>
-                <View style={styles.memberList}>
-                  {users.length > 0 ? (
-                    users
-                      .sort(sortUsers)
-                      .map((user) => (
-                        <Text key={user.id} style={styles.member}>
-                          • {formatName(user)}
-                        </Text>
-                      ))
-                  ) : (
-                    <Text style={styles.noMembers}>No members available</Text>
-                  )}
+          <>
+            {sortedDates.map(date => {
+              const dateStr = date.toString();
+              const users = rosterData[dateStr] || [];
+              
+              return (
+                <View key={dateStr} style={styles.section}>
+                  <Text style={styles.serviceDate}>
+                    {format(date, "EEEE, MMMM d, yyyy")}
+                  </Text>
+                  <View style={styles.memberList}>
+                    {users.length > 0 ? (
+                      users
+                        .sort(sortUsers)
+                        .map((user) => (
+                          <Text key={user.id} style={styles.member}>
+                            • {formatName(user)}
+                          </Text>
+                        ))
+                    ) : (
+                      <Text style={styles.noMembers}>No members available</Text>
+                    )}
+                  </View>
                 </View>
+              );
+            })}
+            
+            {/* Display verse at the bottom of the card view if provided */}
+            {verse && (
+              <View style={{ marginTop: 20, padding: 10 }}>
+                <PDFVerse verse={verse} />
               </View>
-            );
-          })
+            )}
+          </>
         ) : (
           // Simple View (Table)
           <View style={styles.section}>
