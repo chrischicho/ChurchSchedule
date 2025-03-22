@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { format, addMonths, subMonths } from "date-fns";
 import { NavBar } from "@/components/nav-bar";
@@ -68,25 +68,24 @@ type SpecialDayFormValues = z.infer<typeof specialDaySchema>;
 
 // Component to display the list of special days
 function SpecialDaysList({ 
-  currentMonth, 
   onEdit, 
   onDelete 
 }: { 
-  currentMonth: Date; 
   onEdit: (specialDay: SpecialDay) => void; 
   onDelete: (specialDay: SpecialDay) => void; 
 }) {
-  // Get the year and month from the selected date
-  const year = currentMonth.getFullYear();
-  const month = currentMonth.getMonth() + 1; // JavaScript months are 0-based
+  // Use state to track selected view mode
+  const [viewMode, setViewMode] = useState<'all' | 'month'>('all');
+  const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
   
-  const { data: specialDays, isLoading, isError } = useQuery<SpecialDay[]>({
-    queryKey: ["/api/special-days/month", year, month],
+  // Get all special days instead of just one month
+  const { data: allSpecialDays, isLoading, isError } = useQuery<SpecialDay[]>({
+    queryKey: ["/api/special-days"],
     queryFn: async () => {
       try {
-        console.log(`Fetching special days for year=${year}, month=${month}`);
+        console.log("Fetching all special days");
         
-        const response = await fetch(`/api/special-days/month?year=${year}&month=${month}`, {
+        const response = await fetch(`/api/special-days`, {
           credentials: 'include'
         });
         
@@ -111,69 +110,150 @@ function SpecialDaysList({
     staleTime: 0
   });
 
+  // Filter the days if we're in month view
+  const specialDays = useMemo(() => {
+    if (!allSpecialDays || viewMode === 'all') {
+      return allSpecialDays;
+    }
+    
+    // Filter by selected month
+    const year = selectedMonth.getFullYear();
+    const month = selectedMonth.getMonth();
+    
+    return allSpecialDays.filter(day => {
+      const dayDate = new Date(day.date);
+      return dayDate.getFullYear() === year && dayDate.getMonth() === month;
+    });
+  }, [allSpecialDays, viewMode, selectedMonth]);
+
   if (isLoading) {
     return <div className="flex justify-center p-4"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
 
+  // Controls for switching view modes and months
+  const ViewControls = () => (
+    <div className="mb-4 flex flex-wrap gap-4 items-center justify-between">
+      <div className="flex gap-2">
+        <Button 
+          variant={viewMode === 'all' ? 'default' : 'outline'} 
+          onClick={() => setViewMode('all')}
+          size="sm"
+        >
+          All Special Days
+        </Button>
+        <Button 
+          variant={viewMode === 'month' ? 'default' : 'outline'}
+          onClick={() => setViewMode('month')}
+          size="sm"
+        >
+          By Month
+        </Button>
+      </div>
+      
+      {viewMode === 'month' && (
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const prevMonth = new Date(selectedMonth);
+              prevMonth.setMonth(prevMonth.getMonth() - 1);
+              setSelectedMonth(prevMonth);
+            }}
+          >
+            Previous
+          </Button>
+          
+          <span className="text-sm font-medium">
+            {format(selectedMonth, "MMMM yyyy")}
+          </span>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const nextMonth = new Date(selectedMonth);
+              nextMonth.setMonth(nextMonth.getMonth() + 1);
+              setSelectedMonth(nextMonth);
+            }}
+          >
+            Next
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+
+  // Display empty state based on the view mode
   if (!specialDays?.length) {
     return (
-      <div className="text-center p-4 border rounded-md bg-muted/10">
-        <p className="text-muted-foreground">No special days marked for {format(currentMonth, "MMMM yyyy")}</p>
-      </div>
+      <>
+        <ViewControls />
+        <div className="text-center p-4 border rounded-md bg-muted/10">
+          <p className="text-muted-foreground">
+            {viewMode === 'month' 
+              ? `No special days marked for ${format(selectedMonth, "MMMM yyyy")}`
+              : "No special days have been created yet"}
+          </p>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="rounded-md border">
-      <table className="w-full">
-        <thead>
-          <tr className="border-b">
-            <th className="p-3 text-left">Date</th>
-            <th className="p-3 text-left">Name</th>
-            <th className="p-3 text-left">Description</th>
-            <th className="p-3 text-left">Color</th>
-            <th className="p-3 text-right">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {specialDays.map((specialDay) => (
-            <tr key={specialDay.id} className="border-b">
-              <td className="p-3">{format(new Date(specialDay.date), "MMMM d, yyyy")}</td>
-              <td className="p-3 font-medium">{specialDay.name}</td>
-              <td className="p-3 text-muted-foreground">{specialDay.description || "-"}</td>
-              <td className="p-3">
-                <div className="flex items-center">
-                  <div 
-                    className="w-5 h-5 rounded-full mr-2" 
-                    style={{ backgroundColor: specialDay.color }} 
-                  />
-                  {specialDay.color}
-                </div>
-              </td>
-              <td className="p-3 text-right">
-                <div className="flex justify-end space-x-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => onEdit(specialDay)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                    onClick={() => onDelete(specialDay)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </td>
+    <>
+      <ViewControls />
+      <div className="rounded-md border">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b">
+              <th className="p-3 text-left">Date</th>
+              <th className="p-3 text-left">Name</th>
+              <th className="p-3 text-left">Description</th>
+              <th className="p-3 text-left">Color</th>
+              <th className="p-3 text-right">Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {specialDays.map((specialDay) => (
+              <tr key={specialDay.id} className="border-b">
+                <td className="p-3">{format(new Date(specialDay.date), "MMMM d, yyyy")}</td>
+                <td className="p-3 font-medium">{specialDay.name}</td>
+                <td className="p-3 text-muted-foreground">{specialDay.description || "-"}</td>
+                <td className="p-3">
+                  <div className="flex items-center">
+                    <div 
+                      className="w-5 h-5 rounded-full mr-2" 
+                      style={{ backgroundColor: specialDay.color }} 
+                    />
+                    {specialDay.color}
+                  </div>
+                </td>
+                <td className="p-3 text-right">
+                  <div className="flex justify-end space-x-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => onEdit(specialDay)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                      onClick={() => onDelete(specialDay)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 
@@ -846,8 +926,7 @@ export default function AdminPage() {
             <CardContent>
               <div className="space-y-4">
                 {/* Special Days Query */}
-                <SpecialDaysList 
-                  currentMonth={selectedMonth}
+                <SpecialDaysList
                   onEdit={(specialDay) => {
                     setSpecialDayToEdit(specialDay);
                     setShowSpecialDayDialog(true);
