@@ -37,16 +37,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values({
-        ...insertUser,
-        firstLogin: true,
-        pin: "000000"
-      })
-      .returning();
-    console.log(`Created new user: ${JSON.stringify(user)}`);
-    return user;
+    try {
+      console.log(`Attempting to create user with data: ${JSON.stringify(insertUser)}`);
+      const [user] = await db
+        .insert(users)
+        .values({
+          ...insertUser,
+          firstLogin: true,
+          pin: "000000"
+        })
+        .returning();
+      console.log(`Created new user: ${JSON.stringify(user)}`);
+      return user;
+    } catch (error) {
+      console.error("Error in createUser:", error);
+      throw error; // Re-throw to be handled by caller
+    }
   }
 
   async deleteUser(id: number): Promise<void> {
