@@ -107,8 +107,20 @@ export function RosterPDF({ month, rosterData, viewType = "card", verse, ...prop
       : a.firstName.localeCompare(b.firstName);
   };
   
-  // Convert date strings to Date objects for sorting
-  const sortedDates = Object.keys(rosterData)
+  // Convert date strings to Date objects for sorting and create a new object with proper date keys
+  const processedRosterData: { [key: string]: User[] } = {};
+  
+  // Process the roster data with consistent date handling
+  Object.entries(rosterData).forEach(([dateStr, users]) => {
+    // Ensure we have a proper Date object
+    const dateObj = new Date(dateStr);
+    // Use a consistent date string format for keys
+    const normalizedDateStr = dateObj.toISOString();
+    processedRosterData[normalizedDateStr] = users;
+  });
+  
+  // Get sorted dates for display
+  const sortedDates = Object.keys(processedRosterData)
     .map(date => new Date(date))
     .sort((a, b) => a.getTime() - b.getTime());
   
@@ -127,11 +139,11 @@ export function RosterPDF({ month, rosterData, viewType = "card", verse, ...prop
           // Card View
           <>
             {sortedDates.map(date => {
-              const dateStr = date.toString();
-              const users = rosterData[dateStr] || [];
+              const isoDateStr = date.toISOString();
+              const users = processedRosterData[isoDateStr] || [];
               
               return (
-                <View key={dateStr} style={styles.section}>
+                <View key={isoDateStr} style={styles.section}>
                   <Text style={styles.serviceDate}>
                     {format(date, "EEEE, MMMM d, yyyy")}
                   </Text>
@@ -168,11 +180,11 @@ export function RosterPDF({ month, rosterData, viewType = "card", verse, ...prop
             </View>
             
             {sortedDates.map(date => {
-              const dateStr = date.toString();
-              const users = rosterData[dateStr] || [];
+              const isoDateStr = date.toISOString();
+              const users = processedRosterData[isoDateStr] || [];
               
               return (
-                <View key={dateStr} style={styles.tableRow}>
+                <View key={isoDateStr} style={styles.tableRow}>
                   <Text style={styles.dateCell}>
                     {format(date, "dd/MM/yyyy")}
                   </Text>
