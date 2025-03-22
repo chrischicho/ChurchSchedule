@@ -2,6 +2,13 @@ import { pgTable, text, serial, integer, boolean, date, timestamp } from "drizzl
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+export const verses = pgTable("verses", {
+  id: serial("id").primaryKey(),
+  text: text("text").notNull(),
+  reference: text("reference").notNull(),
+  category: text("category").default("serving").notNull(),
+});
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   firstName: text("first_name").notNull(),
@@ -38,6 +45,10 @@ export const insertSettingsSchema = createInsertSchema(settings).omit({
   id: true
 });
 
+export const insertVerseSchema = createInsertSchema(verses).omit({
+  id: true
+});
+
 export const updatePinSchema = z.object({
   currentPin: z.string().regex(/^\d{4,6}$/, "PIN must be 4-6 digits"),
   newPin: z.string().regex(/^\d{4,6}$/, "PIN must be 4-6 digits")
@@ -56,3 +67,5 @@ export type UpdatePin = z.infer<typeof updatePinSchema>;
 export type NameFormat = z.infer<typeof nameFormatSchema>;
 export type Settings = typeof settings.$inferSelect;
 export type InsertSettings = z.infer<typeof insertSettingsSchema>;
+export type Verse = typeof verses.$inferSelect;
+export type InsertVerse = z.infer<typeof insertVerseSchema>;

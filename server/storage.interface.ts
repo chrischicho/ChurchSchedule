@@ -1,5 +1,10 @@
 import { Store } from "express-session";
-import { User, InsertUser, Availability, InsertAvailability, Settings } from "@shared/schema";
+import { 
+  User, InsertUser, 
+  Availability, InsertAvailability, 
+  Settings,
+  Verse, InsertVerse
+} from "@shared/schema";
 
 export interface IStorage {
   sessionStore: Store;
@@ -24,4 +29,10 @@ export interface IStorage {
   getNameFormat(): string;
   setNameFormat(format: string): Promise<string>;
   formatUserName(user: User): string;
+  
+  // Verse operations
+  getAllVerses(): Promise<Verse[]>;
+  getRandomVerse(category?: string): Promise<Verse | undefined>;
+  createVerse(verse: InsertVerse): Promise<Verse>;
+  deleteVerse(id: number): Promise<void>;
 }
