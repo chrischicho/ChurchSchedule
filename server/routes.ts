@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { ZodError } from "zod";
-import { insertAvailabilitySchema, deadlineDaySchema } from "@shared/schema";
+import { insertAvailabilitySchema, deadlineDaySchema, User } from "@shared/schema";
 import nodemailer from "nodemailer";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createElement } from "react";
