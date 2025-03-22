@@ -181,81 +181,100 @@ function SpecialDaysList({
 function SpecialDayDialog({ 
   isOpen, 
   onClose, 
-  specialDay,
-  createMutation,
-  updateMutation
+  specialDay 
 }: { 
   isOpen: boolean; 
   onClose: () => void; 
   specialDay: SpecialDay | null;
-  createMutation: any;
-  updateMutation: any;
 }) {
   const { toast } = useToast();
   const isEditing = !!specialDay;
+  const [isPending, setIsPending] = useState(false);
+  
+  const defaultValues = isEditing 
+    ? {
+        date: new Date(specialDay.date),
+        name: specialDay.name,
+        description: specialDay.description || '',
+        color: specialDay.color
+      }
+    : {
+        date: new Date(),
+        name: '',
+        description: '',
+        color: '#FFD700' // Default gold color
+      };
   
   const form = useForm<SpecialDayFormValues>({
     resolver: zodResolver(specialDaySchema),
-    defaultValues: isEditing 
-      ? {
-          date: new Date(specialDay.date),
-          name: specialDay.name,
-          description: specialDay.description || '',
-          color: specialDay.color
-        }
-      : {
-          date: new Date(),
-          name: '',
-          description: '',
-          color: '#FFD700' // Default gold color
-        }
+    defaultValues
   });
   
-  // Reset the form when the dialog opens/closes or when editing a different special day
+  // Reset the form when the dialog opens/closes
   useEffect(() => {
     if (isOpen) {
-      if (isEditing) {
-        form.reset({
-          date: new Date(specialDay.date),
-          name: specialDay.name,
-          description: specialDay.description || '',
-          color: specialDay.color
-        });
-      } else {
-        form.reset({
-          date: new Date(),
-          name: '',
-          description: '',
-          color: '#FFD700'
-        });
-      }
+      form.reset(defaultValues);
     }
-  }, [form, isOpen, isEditing, specialDay]);
+  }, [isOpen, form]);
   
   const handleSubmit = async (data: SpecialDayFormValues) => {
     try {
-      if (form.formState.isSubmitting) return;
+      setIsPending(true);
       
-      console.log(`Submitting special day data:`, JSON.stringify(data));
-      
-      // Make sure date is properly formatted (ISO string for database)
+      // Format the date for API submission
       const formattedData = {
         ...data,
         date: data.date.toISOString().split('T')[0]
       };
       
-      console.log('Formatted data:', formattedData);
+      console.log("Submitting data:", formattedData);
       
       if (isEditing && specialDay) {
-        // Use update mutation
-        await updateMutation.mutateAsync({ 
-          id: specialDay.id, 
-          data: formattedData 
+        // Update an existing special day
+        const response = await fetch(`/api/admin/special-days/${specialDay.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formattedData),
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to update special day');
+        }
+        
+        toast({
+          title: "Success",
+          description: "Special day updated successfully",
         });
       } else {
-        // Use create mutation
-        await createMutation.mutateAsync(formattedData);
+        // Create a new special day
+        const response = await fetch('/api/admin/special-days', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formattedData),
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to create special day');
+        }
+        
+        toast({
+          title: "Success",
+          description: "Special day created successfully",
+        });
       }
+      
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ["/api/special-days"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/special-days/month"] });
+      
+      // Close the dialog and reset form
+      onClose();
       
     } catch (error) {
       console.error("Error saving special day:", error);
@@ -264,6 +283,8 @@ function SpecialDayDialog({
         description: error instanceof Error ? error.message : "Failed to save special day",
         variant: "destructive"
       });
+    } finally {
+      setIsPending(false);
     }
   };
   
@@ -839,8 +860,6 @@ export default function AdminPage() {
                   isOpen={showSpecialDayDialog}
                   onClose={() => setShowSpecialDayDialog(false)}
                   specialDay={specialDayToEdit}
-                  createMutation={createSpecialDayMutation}
-                  updateMutation={updateSpecialDayMutation}
                 />
                 
                 {/* Delete Confirmation */}
