@@ -6,6 +6,7 @@ import { ZodError } from "zod";
 import { insertAvailabilitySchema, deadlineDaySchema } from "@shared/schema";
 import nodemailer from "nodemailer";
 import { renderToBuffer } from "@react-pdf/renderer";
+import { createElement } from "react";
 import { RosterPDF } from "../client/src/components/roster-pdf";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -142,22 +143,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get roster data
-      const availability = await storage.getAvailability();
+      const availabilityRecords = await storage.getAvailability();
       const currentMonth = new Date();
-
+      const allUsers = await storage.getAllUsers();
+      
       // Group users by service date
-      const rosterData: { [key: string]: any[] } = {};
-      availability.forEach(record => {
-        const date = record.serviceDate;
+      const rosterData: { [key: string]: User[] } = {};
+      
+      // Process availability records
+      for (const record of availabilityRecords) {
+        // Only include available users
+        if (!record.isAvailable) continue;
+        
+        const date = record.serviceDate.toString();
         if (!rosterData[date]) {
           rosterData[date] = [];
         }
-        rosterData[date].push(record.user);
-      });
+        
+        // Find the corresponding user
+        const user = allUsers.find(u => u.id === record.userId);
+        if (user) {
+          rosterData[date].push(user);
+        }
+      }
 
       // Generate PDF
       const pdfBuffer = await renderToBuffer(
-        <RosterPDF month={currentMonth} rosterData={rosterData} />
+        createElement(RosterPDF, { month: currentMonth, rosterData: rosterData })
       );
 
       // Configure email transporter
