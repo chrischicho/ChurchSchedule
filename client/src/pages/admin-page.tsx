@@ -502,28 +502,8 @@ export default function AdminPage() {
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0">
-                        <div className="flex p-2 gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="icon"
-                            onClick={() => setSelectedMonth(subMonths(selectedMonth, 1))}
-                          >
-                            ←
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="icon"
-                            onClick={() => setSelectedMonth(new Date())}
-                          >
-                            Today
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="icon"
-                            onClick={() => setSelectedMonth(addMonths(selectedMonth, 1))}
-                          >
-                            →
-                          </Button>
+                        <div className="p-2 text-center text-sm font-medium border-b">
+                          Available Months
                         </div>
                         {availableMonths.length > 0 ? (
                           <div className="p-3">

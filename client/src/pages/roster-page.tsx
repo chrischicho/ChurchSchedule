@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { NavBar } from "@/components/nav-bar";
 import {
@@ -16,6 +16,11 @@ import {
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { format, startOfMonth, addMonths, eachDayOfInterval, isSunday, subMonths } from "date-fns";
 import { Availability, User } from "@shared/schema";
 import { Loader2, ChevronLeft, ChevronRight, CalendarDays, Users, Calendar, LayoutGrid, List } from "lucide-react";
@@ -48,6 +53,8 @@ export default function RosterPage() {
   const [selectedMonth, setSelectedMonth] = useState(startOfMonth(new Date()));
   const [viewType, setViewType] = useState<ViewType>('card');
   const [showDeadlineNotice, setShowDeadlineNotice] = useState(false);
+  const [availableMonths, setAvailableMonths] = useState<Date[]>([]);
+  const [showMonthSelector, setShowMonthSelector] = useState(false);
 
   const { data: availabilities, isLoading: isLoadingAvailability } = useQuery<Availability[]>({
     queryKey: ["/api/availability"],
@@ -62,6 +69,46 @@ export default function RosterPage() {
   });
 
   const isLoading = isLoadingAvailability || isLoadingUsers;
+  
+  // Process availability data to determine which months have data
+  useEffect(() => {
+    if (availabilities && Array.isArray(availabilities)) {
+      // Get months with available members
+      const months = new Set<string>();
+      
+      // Only include records where someone is available
+      availabilities
+        .filter(record => record.isAvailable)
+        .forEach(record => {
+          const date = new Date(record.serviceDate);
+          const monthYear = format(date, 'yyyy-MM'); // Format as YYYY-MM for uniqueness
+          months.add(monthYear);
+        });
+      
+      // Convert to Date objects (first day of each month)
+      const monthDates = Array.from(months).map(monthStr => {
+        const [year, month] = monthStr.split('-').map(Number);
+        return new Date(year, month - 1, 1); // Month is 0-indexed in JS Date
+      });
+      
+      // Sort by date
+      monthDates.sort((a, b) => a.getTime() - b.getTime());
+      
+      setAvailableMonths(monthDates);
+      
+      // If there are available months and current selection isn't in the list,
+      // select the most recent month
+      if (monthDates.length > 0) {
+        const currentMonthYear = format(selectedMonth, 'yyyy-MM');
+        const hasCurrentMonth = Array.from(months).includes(currentMonthYear);
+        
+        if (!hasCurrentMonth) {
+          // Get the most recent month (last in the sorted array)
+          setSelectedMonth(monthDates[monthDates.length - 1]);
+        }
+      }
+    }
+  }, [availabilities, selectedMonth]);
 
   const sundays = eachDayOfInterval({
     start: selectedMonth,
@@ -253,29 +300,46 @@ export default function RosterPage() {
                     <List className="h-4 w-4" />
                   </Button>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-full"
-                    onClick={() => setSelectedMonth(prev => startOfMonth(subMonths(prev, 1)))}
-                    title="Previous Month"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <div className="min-w-[120px] text-center font-medium">
-                    {format(selectedMonth, "MMMM yyyy")}
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-full"
-                    onClick={() => setSelectedMonth(prev => startOfMonth(addMonths(prev, 1)))}
-                    title="Next Month"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
+                <Popover open={showMonthSelector} onOpenChange={setShowMonthSelector}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="min-w-[150px] justify-start text-left font-normal"
+                      onClick={() => setShowMonthSelector(true)}
+                    >
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {format(selectedMonth, "MMMM yyyy")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <div className="p-2 text-center text-sm font-medium border-b">
+                      Available Months
+                    </div>
+                    {availableMonths.length > 0 ? (
+                      <div className="p-3">
+                        {availableMonths.map((month) => (
+                          <Button
+                            key={format(month, 'yyyy-MM')}
+                            variant={format(month, 'yyyy-MM') === format(selectedMonth, 'yyyy-MM') ? "default" : "outline"}
+                            className="w-full mb-2"
+                            onClick={() => {
+                              setSelectedMonth(month);
+                              setShowMonthSelector(false);
+                            }}
+                          >
+                            {format(month, 'MMMM yyyy')}
+                          </Button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-3">
+                        <p className="text-sm text-center text-muted-foreground">
+                          No months with availability data
+                        </p>
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
           </div>
