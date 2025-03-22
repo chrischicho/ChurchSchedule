@@ -130,6 +130,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to update name format" });
     }
   });
+  
+  // Test API for email configuration
+  app.get("/api/admin/test-email", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user.isAdmin) {
+      return res.sendStatus(403);
+    }
+
+    try {
+      console.log("Testing email configuration");
+      console.log("Email settings:", {
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT || "587"),
+        secure: process.env.SMTP_SECURE === "true",
+        user: process.env.SMTP_USER ? "Set" : "Not set",
+        pass: process.env.SMTP_PASS ? "Set" : "Not set",
+        from: process.env.SMTP_FROM,
+      });
+      
+      // Configure email transporter
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT || "587"),
+        secure: process.env.SMTP_SECURE === "true",
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+        debug: true,
+        logger: true // This will log details to the console
+      });
+      
+      try {
+        // Verify the connection configuration
+        const verification = await transporter.verify();
+        console.log("Email verification result:", verification);
+        res.json({ success: true, message: "Email configuration is valid" });
+      } catch (verifyError) {
+        const error = verifyError as Error;
+        console.error("Email verification failed:", error);
+        res.status(500).json({ 
+          success: false, 
+          error: "Email configuration is invalid", 
+          details: error.message
+        });
+      }
+    } catch (err) {
+      console.error("Error testing email:", err);
+      res.status(500).json({ success: false, error: "Failed to test email configuration" });
+    }
+  });
 
   app.post("/api/admin/send-roster", async (req, res) => {
     if (!req.isAuthenticated() || !req.user.isAdmin) {
@@ -172,30 +222,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createElement(RosterPDF, { month: currentMonth, rosterData: rosterData })
       );
 
-      // Configure email transporter
-      const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT || "587"),
-        secure: process.env.SMTP_SECURE === "true",
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS,
-        },
-      });
-
-      // Send email
-      await transporter.sendMail({
-        from: process.env.SMTP_FROM,
-        to: email,
-        subject: `Church Service Roster - ${currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}`,
-        text: "Please find attached the church service roster for this month.",
-        attachments: [
-          {
-            filename: 'roster.pdf',
-            content: pdfBuffer,
+      try {
+        console.log("Setting up email with", {
+          host: process.env.SMTP_HOST,
+          port: parseInt(process.env.SMTP_PORT || "587"),
+          secure: process.env.SMTP_SECURE === "true",
+        });
+        
+        // Configure email transporter
+        const transporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST,
+          port: parseInt(process.env.SMTP_PORT || "587"),
+          secure: process.env.SMTP_SECURE === "true",
+          auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS,
           },
-        ],
-      });
+          // Add debug for troubleshooting
+          debug: true,
+          // Increase timeout to allow for slower connections
+          connectionTimeout: 10000, // 10 seconds
+          greetingTimeout: 10000,
+          socketTimeout: 30000 // 30 seconds
+        });
+
+        // Verify the connection configuration
+        await transporter.verify();
+        console.log("Email transporter verified successfully");
+        
+        // Send email
+        const info = await transporter.sendMail({
+          from: process.env.SMTP_FROM,
+          to: email,
+          subject: `Church Service Roster - ${currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}`,
+          text: "Please find attached the church service roster for this month.",
+          attachments: [
+            {
+              filename: 'roster.pdf',
+              content: pdfBuffer,
+            },
+          ],
+        });
+        
+        console.log("Email sent successfully:", info.messageId);
+      } catch (error) {
+        const emailError = error as Error;
+        console.error("Email sending error details:", emailError);
+        throw new Error(`Email sending failed: ${emailError.message}`);
+      }
 
       res.json({ message: "Roster sent successfully" });
     } catch (err) {
