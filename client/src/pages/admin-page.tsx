@@ -28,12 +28,315 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { 
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { User } from "@shared/schema";
+import { User, SpecialDay } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Loader2, Trash2, Mail, Settings, Calendar as CalendarIcon } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Loader2, Trash2, Mail, Settings, Calendar as CalendarIcon, Plus, Edit, Star } from "lucide-react";
+
+// Form schema for special days
+const specialDaySchema = z.object({
+  date: z.coerce.date(),
+  name: z.string().min(1, "Name is required"),
+  description: z.string().optional(),
+  color: z.string().default("#FFD700")
+});
+
+type SpecialDayFormValues = z.infer<typeof specialDaySchema>;
+
+// Component to display the list of special days
+function SpecialDaysList({ 
+  currentMonth, 
+  onEdit, 
+  onDelete 
+}: { 
+  currentMonth: Date; 
+  onEdit: (specialDay: SpecialDay) => void; 
+  onDelete: (specialDay: SpecialDay) => void; 
+}) {
+  const { data: specialDays, isLoading } = useQuery<SpecialDay[]>({
+    queryKey: ["/api/special-days/month", { 
+      year: currentMonth.getFullYear(), 
+      month: currentMonth.getMonth() + 1 
+    }],
+    queryFn: async ({ queryKey }) => {
+      const [, params] = queryKey as [string, { year: number; month: number }];
+      const res = await fetch(`/api/special-days/month?year=${params.year}&month=${params.month}`);
+      if (!res.ok) throw new Error("Failed to fetch special days");
+      return res.json();
+    }
+  });
+
+  if (isLoading) {
+    return <div className="flex justify-center p-4"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  }
+
+  if (!specialDays?.length) {
+    return (
+      <div className="text-center p-4 border rounded-md bg-muted/10">
+        <p className="text-muted-foreground">No special days marked for {format(currentMonth, "MMMM yyyy")}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-md border">
+      <table className="w-full">
+        <thead>
+          <tr className="border-b">
+            <th className="p-3 text-left">Date</th>
+            <th className="p-3 text-left">Name</th>
+            <th className="p-3 text-left">Description</th>
+            <th className="p-3 text-left">Color</th>
+            <th className="p-3 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {specialDays.map((specialDay) => (
+            <tr key={specialDay.id} className="border-b">
+              <td className="p-3">{format(new Date(specialDay.date), "MMMM d, yyyy")}</td>
+              <td className="p-3 font-medium">{specialDay.name}</td>
+              <td className="p-3 text-muted-foreground">{specialDay.description || "-"}</td>
+              <td className="p-3">
+                <div className="flex items-center">
+                  <div 
+                    className="w-5 h-5 rounded-full mr-2" 
+                    style={{ backgroundColor: specialDay.color }} 
+                  />
+                  {specialDay.color}
+                </div>
+              </td>
+              <td className="p-3 text-right">
+                <div className="flex justify-end space-x-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => onEdit(specialDay)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                    onClick={() => onDelete(specialDay)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// Component for the special day dialog (add/edit)
+function SpecialDayDialog({ 
+  isOpen, 
+  onClose, 
+  specialDay 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  specialDay: SpecialDay | null; 
+}) {
+  const { toast } = useToast();
+  const isEditing = !!specialDay;
+  
+  const form = useForm<SpecialDayFormValues>({
+    resolver: zodResolver(specialDaySchema),
+    defaultValues: isEditing 
+      ? {
+          date: new Date(specialDay.date),
+          name: specialDay.name,
+          description: specialDay.description || '',
+          color: specialDay.color
+        }
+      : {
+          date: new Date(),
+          name: '',
+          description: '',
+          color: '#FFD700' // Default gold color
+        }
+  });
+  
+  // Reset the form when the dialog opens/closes or when editing a different special day
+  useEffect(() => {
+    if (isOpen) {
+      if (isEditing) {
+        form.reset({
+          date: new Date(specialDay.date),
+          name: specialDay.name,
+          description: specialDay.description || '',
+          color: specialDay.color
+        });
+      } else {
+        form.reset({
+          date: new Date(),
+          name: '',
+          description: '',
+          color: '#FFD700'
+        });
+      }
+    }
+  }, [form, isOpen, isEditing, specialDay]);
+  
+  const handleSubmit = async (data: SpecialDayFormValues) => {
+    try {
+      // Create or update the special day
+      if (isEditing && specialDay) {
+        await updateSpecialDayMutation.mutateAsync({ 
+          id: specialDay.id, 
+          data
+        });
+      } else {
+        await createSpecialDayMutation.mutateAsync(data);
+      }
+    } catch (error) {
+      console.error("Error saving special day:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save special day",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>{isEditing ? "Edit Special Sunday" : "Add Special Sunday"}</DialogTitle>
+          <DialogDescription>
+            Mark a Sunday as special with a name, description, and custom color.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Date</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          className="w-full pl-3 text-left font-normal"
+                        >
+                          {field.value ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., Easter Sunday" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description (Optional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., Special Easter service with communion" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="color"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Color</FormLabel>
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-8 h-8 rounded-full border" 
+                      style={{ backgroundColor: field.value }}
+                    />
+                    <FormControl className="flex-1">
+                      <Input type="color" {...field} />
+                    </FormControl>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <DialogFooter>
+              <Button type="submit" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : null}
+                {isEditing ? "Update" : "Create"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function AdminPage() {
   const { user } = useAuth();
@@ -48,6 +351,9 @@ export default function AdminPage() {
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
   const [viewType, setViewType] = useState<"card" | "simple">("card");
   const [availableMonths, setAvailableMonths] = useState<Date[]>([]);
+  const [specialDayToEdit, setSpecialDayToEdit] = useState<SpecialDay | null>(null);
+  const [specialDayToDelete, setSpecialDayToDelete] = useState<SpecialDay | null>(null);
+  const [showSpecialDayDialog, setShowSpecialDayDialog] = useState(false);
 
   const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/members"],
@@ -59,6 +365,71 @@ export default function AdminPage() {
   
   const { data: availability } = useQuery({
     queryKey: ["/api/availability"],
+  });
+  
+  // Special days queries and mutations
+  const createSpecialDayMutation = useMutation({
+    mutationFn: async (data: SpecialDayFormValues) => {
+      const res = await apiRequest("POST", "/api/admin/special-days", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/special-days"] });
+      setShowSpecialDayDialog(false);
+      toast({
+        title: "Success",
+        description: "Special day added successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  const updateSpecialDayMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number, data: Partial<SpecialDayFormValues> }) => {
+      const res = await apiRequest("PATCH", `/api/admin/special-days/${id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/special-days"] });
+      setShowSpecialDayDialog(false);
+      toast({
+        title: "Success",
+        description: "Special day updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  const deleteSpecialDayMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/admin/special-days/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/special-days"] });
+      toast({
+        title: "Success",
+        description: "Special day deleted successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   useEffect(() => {
@@ -384,6 +755,68 @@ export default function AdminPage() {
                     ))}
                   </select>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Special Sundays</span>
+                <Button 
+                  onClick={() => {
+                    setSpecialDayToEdit(null);
+                    setShowSpecialDayDialog(true);
+                  }} 
+                  size="sm"
+                  className="ml-2"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Special Sunday
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Special Days Query */}
+                <SpecialDaysList 
+                  currentMonth={selectedMonth}
+                  onEdit={(specialDay) => {
+                    setSpecialDayToEdit(specialDay);
+                    setShowSpecialDayDialog(true);
+                  }}
+                  onDelete={(specialDay) => setSpecialDayToDelete(specialDay)}
+                />
+                
+                {/* Special Day Dialog */}
+                <SpecialDayDialog 
+                  isOpen={showSpecialDayDialog}
+                  onClose={() => setShowSpecialDayDialog(false)}
+                  specialDay={specialDayToEdit}
+                />
+                
+                {/* Delete Confirmation */}
+                <AlertDialog open={!!specialDayToDelete} onOpenChange={() => setSpecialDayToDelete(null)}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete the special day "{specialDayToDelete?.name}"? This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => {
+                        if (specialDayToDelete) {
+                          deleteSpecialDayMutation.mutate(specialDayToDelete.id);
+                          setSpecialDayToDelete(null);
+                        }
+                      }}>
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </CardContent>
           </Card>
