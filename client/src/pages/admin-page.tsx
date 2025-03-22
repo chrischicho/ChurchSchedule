@@ -249,43 +249,64 @@ function SpecialDayDialog({
       
       console.log(`Formatted data for submission:`, JSON.stringify(formattedData));
       
-      if (isEditing && specialDay) {
-        // For an existing special day (update)
-        console.log(`Updating special day ID ${specialDay.id}`);
-        
-        const response = await fetch(`/api/admin/special-days/${specialDay.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formattedData),
-          credentials: 'include'
-        });
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`Update error response: ${response.status}`, errorText);
-          throw new Error(`Failed to update special day: ${response.status}`);
+      try {
+        if (isEditing && specialDay) {
+          // For an existing special day (update)
+          console.log(`Updating special day ID ${specialDay.id}`);
+          
+          const response = await fetch(`/api/admin/special-days/${specialDay.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formattedData),
+            credentials: 'include'
+          });
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Update error response: ${response.status}`, errorText);
+            throw new Error(`Failed to update special day: ${response.status} ${errorText}`);
+          }
+          
+          console.log('Special day updated successfully');
+        } else {
+          // For a new special day (create)
+          console.log('Creating new special day with data:', JSON.stringify(formattedData));
+          
+          console.time('specialDayCreate');
+          const response = await fetch('/api/admin/special-days', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formattedData),
+            credentials: 'include'
+          });
+          console.timeEnd('specialDayCreate');
+          
+          console.log('Response received:', response.status);
+          
+          if (!response.ok) {
+            let errorMessage = `Status: ${response.status}`;
+            try {
+              const errorText = await response.text();
+              console.error(`Create error response: ${response.status}`, errorText);
+              errorMessage += ` - ${errorText}`;
+            } catch (textError) {
+              console.error('Could not read error response text', textError);
+            }
+            throw new Error(`Failed to create special day: ${errorMessage}`);
+          }
+          
+          try {
+            const result = await response.json();
+            console.log('Special day created successfully:', result);
+          } catch (jsonError) {
+            console.error('Error parsing JSON response', jsonError);
+            // If we can't parse the JSON, at least we know the request was successful
+            console.log('Special day created successfully (no JSON response)');
+          }
         }
-        
-        console.log('Special day updated successfully');
-      } else {
-        // For a new special day (create)
-        console.log('Creating new special day');
-        
-        const response = await fetch('/api/admin/special-days', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formattedData),
-          credentials: 'include'
-        });
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`Create error response: ${response.status}`, errorText);
-          throw new Error(`Failed to create special day: ${response.status}`);
-        }
-        
-        const result = await response.json();
-        console.log('Special day created successfully:', result);
+      } catch (fetchError) {
+        console.error('Fetch operation error:', fetchError);
+        throw fetchError; // Re-throw to be handled by the outer catch
       }
       
       // Invalidate all special days queries to ensure updated data
