@@ -74,8 +74,6 @@ export default function RosterPage() {
   const { data: specialDays, isLoading: isLoadingSpecialDays } = useQuery<SpecialDay[]>({
     queryKey: ["/api/special-days"],
   });
-
-  const isLoading = isLoadingAvailability || isLoadingUsers || isLoadingSpecialDays;
   
   // Process availability data to determine which months have data
   useEffect(() => {
@@ -169,7 +167,8 @@ export default function RosterPage() {
     }
   };
 
-  if (isLoading) {
+  // Check if any data is still loading
+  if (isLoadingAvailability || isLoadingUsers || isLoadingSpecialDays) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <ChurchLoader type="calendar" size="lg" text="Loading roster..." />
