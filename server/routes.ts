@@ -240,11 +240,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
       
+      // Get a random verse for the PDF
+      const verse = await storage.getRandomVerse('serving');
+      
       // Create the PDF document with our data
       const rosterPDFElement = createElement(RosterPDF, { 
         month: selectedMonth, 
         rosterData: filteredRosterData,
-        viewType: viewType || "card" 
+        viewType: viewType || "card",
+        verse: verse
       });
       
       // Generate PDF buffer from the component
