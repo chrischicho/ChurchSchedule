@@ -3,7 +3,8 @@ import {
   User, InsertUser, 
   Availability, InsertAvailability, 
   Settings,
-  Verse, InsertVerse
+  Verse, InsertVerse,
+  SpecialDay, InsertSpecialDay
 } from "@shared/schema";
 
 export interface IStorage {
@@ -35,4 +36,12 @@ export interface IStorage {
   getRandomVerse(category?: string): Promise<Verse | undefined>;
   createVerse(verse: InsertVerse): Promise<Verse>;
   deleteVerse(id: number): Promise<void>;
+  
+  // Special Days operations
+  getSpecialDays(): Promise<SpecialDay[]>;
+  getSpecialDaysByMonth(year: number, month: number): Promise<SpecialDay[]>;
+  getSpecialDay(id: number): Promise<SpecialDay | undefined>;
+  createSpecialDay(specialDay: InsertSpecialDay): Promise<SpecialDay>;
+  updateSpecialDay(id: number, specialDay: Partial<InsertSpecialDay>): Promise<SpecialDay>;
+  deleteSpecialDay(id: number): Promise<void>;
 }
