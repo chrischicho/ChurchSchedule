@@ -47,6 +47,7 @@ export default function AdminPage() {
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
   const [viewType, setViewType] = useState<"card" | "simple">("card");
+  const [availableMonths, setAvailableMonths] = useState<Date[]>([]);
 
   const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/members"],
@@ -55,12 +56,56 @@ export default function AdminPage() {
   const { data: settings } = useQuery<{ deadlineDay: number, nameFormat: string }>({
     queryKey: ["/api/admin/settings"],
   });
+  
+  const { data: availability } = useQuery({
+    queryKey: ["/api/availability"],
+  });
 
   useEffect(() => {
     if (settings) {
       setDeadlineDay(settings.deadlineDay);
     }
   }, [settings]);
+  
+  // Process availability data to determine which months have data
+  useEffect(() => {
+    if (availability && Array.isArray(availability)) {
+      // Get months with available members
+      const months = new Set<string>();
+      
+      // Only include records where someone is available
+      availability
+        .filter(record => record.isAvailable)
+        .forEach(record => {
+          const date = new Date(record.serviceDate);
+          const monthYear = format(date, 'yyyy-MM'); // Format as YYYY-MM for uniqueness
+          months.add(monthYear);
+        });
+      
+      // Convert to Date objects (first day of each month)
+      const monthDates = Array.from(months).map(monthStr => {
+        const [year, month] = monthStr.split('-').map(Number);
+        return new Date(year, month - 1, 1); // Month is 0-indexed in JS Date
+      });
+      
+      // Sort by date
+      monthDates.sort((a, b) => a.getTime() - b.getTime());
+      
+      setAvailableMonths(monthDates);
+      
+      // If there are available months and current selection isn't in the list,
+      // select the most recent month
+      if (monthDates.length > 0) {
+        const currentMonthYear = format(selectedMonth, 'yyyy-MM');
+        const hasCurrentMonth = Array.from(months).includes(currentMonthYear);
+        
+        if (!hasCurrentMonth) {
+          // Get the most recent month (last in the sorted array)
+          setSelectedMonth(monthDates[monthDates.length - 1]);
+        }
+      }
+    }
+  }, [availability, selectedMonth]);
 
   const createMemberMutation = useMutation({
     mutationFn: async (data: { firstName: string; lastName: string }) => {
@@ -480,12 +525,26 @@ export default function AdminPage() {
                             →
                           </Button>
                         </div>
-                        <Calendar
-                          mode="single"
-                          selected={selectedMonth}
-                          onSelect={(date) => date && setSelectedMonth(date)}
-                          initialFocus
-                        />
+                        {availableMonths.length > 0 ? (
+                          <div className="p-3">
+                            {availableMonths.map((month) => (
+                              <Button
+                                key={format(month, 'yyyy-MM')}
+                                variant={format(month, 'yyyy-MM') === format(selectedMonth, 'yyyy-MM') ? "default" : "outline"}
+                                className="w-full mb-2"
+                                onClick={() => setSelectedMonth(month)}
+                              >
+                                {format(month, 'MMMM yyyy')}
+                              </Button>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="p-3">
+                            <p className="text-sm text-center text-muted-foreground">
+                              No months with availability data
+                            </p>
+                          </div>
+                        )}
                       </PopoverContent>
                     </Popover>
                   </div>
