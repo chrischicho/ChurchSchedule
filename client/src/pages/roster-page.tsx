@@ -269,6 +269,7 @@ export default function RosterPage() {
         <TableHeader>
           <TableRow>
             <TableHead>Date</TableHead>
+            <TableHead>Type</TableHead>
             <TableHead>Available Members</TableHead>
           </TableRow>
         </TableHeader>
@@ -276,11 +277,36 @@ export default function RosterPage() {
           {sundays.map((sunday) => {
             const date = format(sunday, "yyyy-MM-dd");
             const availableUsers = groupedAvailabilities[date] || [];
+            
+            // Check if this Sunday is a special day
+            const specialDay = specialDays?.find(day => {
+              const specialDate = new Date(day.date);
+              return format(specialDate, "yyyy-MM-dd") === format(sunday, "yyyy-MM-dd");
+            });
+            
+            // Set row style based on special day
+            const rowStyle = specialDay 
+              ? { 
+                  borderLeft: `4px solid ${specialDay.color}`,
+                } 
+              : {};
 
             return (
-              <TableRow key={date}>
+              <TableRow key={date} style={rowStyle}>
                 <TableCell className="font-medium">
                   {format(sunday, "MMMM d, yyyy")}
+                </TableCell>
+                <TableCell>
+                  {specialDay ? (
+                    <Badge 
+                      style={{ 
+                        backgroundColor: specialDay.color,
+                        color: '#ffffff' 
+                      }}
+                    >
+                      {specialDay.name}
+                    </Badge>
+                  ) : "Regular Sunday"}
                 </TableCell>
                 <TableCell>
                   {availableUsers.length > 0
