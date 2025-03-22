@@ -465,9 +465,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const year = parseInt(req.query.year as string) || new Date().getFullYear();
       const month = parseInt(req.query.month as string) || new Date().getMonth() + 1;
       
+      // Add logging for debugging
+      console.log(`Fetching special days for year=${year}, month=${month}`);
+      
       const specialDays = await storage.getSpecialDaysByMonth(year, month);
-      res.json(specialDays);
+      console.log(`Found ${specialDays?.length || 0} special days`);
+      
+      // Always return an array, even if empty
+      res.json(specialDays || []);
     } catch (err) {
+      console.error("Error in /api/special-days/month:", err);
       res.status(500).json({ message: "Failed to fetch special days for month" });
     }
   });
@@ -494,14 +501,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     try {
+      console.log("Creating special day with data:", JSON.stringify(req.body));
+      
       const data = insertSpecialDaySchema.parse(req.body);
+      console.log("Parsed data:", JSON.stringify(data));
+      
       const specialDay = await storage.createSpecialDay(data);
+      console.log("Created special day:", JSON.stringify(specialDay));
+      
       res.status(201).json(specialDay);
     } catch (err) {
+      console.error("Error creating special day:", err);
+      
       if (err instanceof ZodError) {
-        res.status(400).json({ message: "Invalid special day data" });
+        console.log("Validation error:", JSON.stringify(err.errors));
+        res.status(400).json({ 
+          message: "Invalid special day data", 
+          errors: err.errors 
+        });
       } else {
-        res.status(500).json({ message: "Failed to create special day" });
+        res.status(500).json({ 
+          message: "Failed to create special day",
+          error: err instanceof Error ? err.message : String(err)
+        });
       }
     }
   });

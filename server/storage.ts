@@ -232,14 +232,42 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getSpecialDaysByMonth(year: number, month: number): Promise<SpecialDay[]> {
-    // Get all special days and filter in memory
-    const allSpecialDays = await db.select().from(specialDays);
-    
-    // Filter in memory for the specified month
-    return allSpecialDays.filter(day => {
-      const dayDate = new Date(day.date);
-      return dayDate.getFullYear() === year && dayDate.getMonth() === month - 1;
-    });
+    try {
+      console.log(`Getting special days for year=${year}, month=${month}`);
+      
+      // Get all special days
+      const allSpecialDays = await db.select().from(specialDays);
+      console.log(`Total special days in database: ${allSpecialDays.length}`);
+      
+      if (allSpecialDays.length > 0) {
+        console.log("Sample special day:", JSON.stringify(allSpecialDays[0]));
+      }
+      
+      // Filter in memory for the specified month (adjust for JavaScript's 0-based months)
+      const filteredDays = allSpecialDays.filter(day => {
+        try {
+          // Ensure proper Date object
+          const dayDate = new Date(day.date);
+          
+          // Log for debugging
+          console.log(`Checking date ${day.date}, parsed as ${dayDate.toISOString()}`);
+          console.log(`Year: ${dayDate.getFullYear()}, Month: ${dayDate.getMonth() + 1}`);
+          
+          // Return true if the date matches year and month
+          return dayDate.getFullYear() === year && dayDate.getMonth() === month - 1;
+        } catch (error) {
+          console.error(`Error parsing date ${day.date}:`, error);
+          return false; // Skip this day if we can't parse the date
+        }
+      });
+      
+      console.log(`Filtered to ${filteredDays.length} days for ${year}-${month}`);
+      return filteredDays;
+    } catch (error) {
+      console.error("Error in getSpecialDaysByMonth:", error);
+      // Return empty array instead of crashing on error
+      return [];
+    }
   }
   
   async getSpecialDay(id: number): Promise<SpecialDay | undefined> {
@@ -248,40 +276,80 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createSpecialDay(specialDay: InsertSpecialDay): Promise<SpecialDay> {
-    // Convert date to ISO string format if needed
-    const dateStr = typeof specialDay.date === 'object' && specialDay.date !== null
-      ? (specialDay.date as Date).toISOString().split('T')[0] 
-      : specialDay.date;
-    
-    const [created] = await db
-      .insert(specialDays)
-      .values({
-        ...specialDay,
-        date: dateStr,
-      })
-      .returning();
+    try {
+      // More robust date handling
+      let dateStr: string;
       
-    return created;
+      if (typeof specialDay.date === 'object' && specialDay.date !== null && 'toISOString' in specialDay.date) {
+        // Handle Date object
+        dateStr = (specialDay.date as Date).toISOString().split('T')[0];
+      } else if (typeof specialDay.date === 'string') {
+        // If it's already a string, try to ensure it's in YYYY-MM-DD format
+        const parsedDate = new Date(specialDay.date);
+        if (isNaN(parsedDate.getTime())) {
+          throw new Error(`Invalid date format: ${specialDay.date}`);
+        }
+        dateStr = parsedDate.toISOString().split('T')[0];
+      } else {
+        // Handle unexpected type
+        throw new Error(`Unexpected date type: ${typeof specialDay.date}`);
+      }
+      
+      console.log(`Creating special day with formatted date: ${dateStr}`);
+      
+      const [created] = await db
+        .insert(specialDays)
+        .values({
+          ...specialDay,
+          date: dateStr,
+        })
+        .returning();
+        
+      console.log(`Successfully created special day: ${JSON.stringify(created)}`);
+      return created;
+    } catch (error) {
+      console.error("Error in createSpecialDay:", error);
+      throw error;
+    }
   }
   
   async updateSpecialDay(id: number, specialDay: Partial<InsertSpecialDay>): Promise<SpecialDay> {
-    // Convert date to ISO string format if it's a Date object and exists
-    const updateData: Partial<InsertSpecialDay> = { ...specialDay };
-    
-    if (updateData.date) {
-      updateData.date = typeof updateData.date === 'object' && updateData.date !== null
-        ? (updateData.date as Date).toISOString().split('T')[0] 
-        : updateData.date;
-    }
-    
-    const [updated] = await db
-      .update(specialDays)
-      .set(updateData)
-      .where(eq(specialDays.id, id))
-      .returning();
+    try {
+      console.log(`Updating special day with ID ${id}:`, JSON.stringify(specialDay));
       
-    if (!updated) throw new Error("Special day not found");
-    return updated;
+      // Convert date to ISO string format if it's a Date object and exists
+      const updateData: Partial<InsertSpecialDay> = { ...specialDay };
+      
+      if (updateData.date) {
+        if (typeof updateData.date === 'object' && updateData.date !== null && 'toISOString' in updateData.date) {
+          // Handle Date object
+          updateData.date = (updateData.date as Date).toISOString().split('T')[0];
+        } else if (typeof updateData.date === 'string') {
+          // If it's already a string, try to ensure it's in YYYY-MM-DD format
+          const parsedDate = new Date(updateData.date);
+          if (isNaN(parsedDate.getTime())) {
+            throw new Error(`Invalid date format: ${updateData.date}`);
+          }
+          updateData.date = parsedDate.toISOString().split('T')[0];
+        }
+      }
+      
+      console.log(`Processed update data:`, JSON.stringify(updateData));
+      
+      const [updated] = await db
+        .update(specialDays)
+        .set(updateData)
+        .where(eq(specialDays.id, id))
+        .returning();
+        
+      if (!updated) throw new Error("Special day not found");
+      
+      console.log(`Successfully updated special day:`, JSON.stringify(updated));
+      return updated;
+    } catch (error) {
+      console.error(`Error updating special day ${id}:`, error);
+      throw error;
+    }
   }
   
   async deleteSpecialDay(id: number): Promise<void> {

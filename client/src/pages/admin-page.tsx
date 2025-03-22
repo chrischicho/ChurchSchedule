@@ -80,24 +80,35 @@ function SpecialDaysList({
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth() + 1; // JavaScript months are 0-based
   
-  const { data: specialDays, isLoading } = useQuery<SpecialDay[]>({
+  const { data: specialDays, isLoading, isError } = useQuery<SpecialDay[]>({
     queryKey: ["/api/special-days/month", year, month],
     queryFn: async () => {
       try {
+        console.log(`Fetching special days for year=${year}, month=${month}`);
+        
         const response = await fetch(`/api/special-days/month?year=${year}&month=${month}`, {
           credentials: 'include'
         });
         
         if (!response.ok) {
+          const errorData = await response.text();
+          console.error(`Error response: ${response.status} ${response.statusText}`, errorData);
           throw new Error(`Error fetching special days: ${response.status}`);
         }
         
-        return await response.json();
+        const data = await response.json();
+        console.log(`Successfully fetched ${data?.length || 0} special days`);
+        return data || [];
       } catch (error) {
         console.error("Error fetching special days:", error);
-        throw new Error("Failed to fetch special days");
+        // Return empty array instead of throwing to prevent component from crashing
+        return [];
       }
-    }
+    },
+    // Don't refetch on window focus to avoid unnecessary requests
+    refetchOnWindowFocus: false,
+    // Always treat the response as fresh data
+    staleTime: 0
   });
 
   if (isLoading) {
@@ -227,28 +238,59 @@ function SpecialDayDialog({
       
       if (form.formState.isSubmitting) return;
       
+      console.log(`Submitting special day data:`, JSON.stringify(data));
+      
+      // Make sure date is properly formatted (ISO string for database)
+      const formattedData = {
+        ...data,
+        // Ensure date is serialized correctly
+        date: data.date.toISOString().split('T')[0]
+      };
+      
+      console.log(`Formatted data for submission:`, JSON.stringify(formattedData));
+      
       if (isEditing && specialDay) {
         // For an existing special day (update)
+        console.log(`Updating special day ID ${specialDay.id}`);
+        
         const response = await fetch(`/api/admin/special-days/${specialDay.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
+          body: JSON.stringify(formattedData),
+          credentials: 'include'
         });
         
-        if (!response.ok) throw new Error('Failed to update special day');
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Update error response: ${response.status}`, errorText);
+          throw new Error(`Failed to update special day: ${response.status}`);
+        }
+        
+        console.log('Special day updated successfully');
       } else {
         // For a new special day (create)
+        console.log('Creating new special day');
+        
         const response = await fetch('/api/admin/special-days', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
+          body: JSON.stringify(formattedData),
+          credentials: 'include'
         });
         
-        if (!response.ok) throw new Error('Failed to create special day');
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Create error response: ${response.status}`, errorText);
+          throw new Error(`Failed to create special day: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('Special day created successfully:', result);
       }
       
-      // Invalidate queries after success
+      // Invalidate all special days queries to ensure updated data
       queryClient.invalidateQueries({ queryKey: ["/api/special-days"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/special-days/month"] });
       
       // Close dialog and show success message
       onClose();
@@ -260,7 +302,7 @@ function SpecialDayDialog({
       console.error("Error saving special day:", error);
       toast({
         title: "Error",
-        description: "Failed to save special day",
+        description: error instanceof Error ? error.message : "Failed to save special day",
         variant: "destructive"
       });
     }
