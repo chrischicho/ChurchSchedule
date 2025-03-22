@@ -76,16 +76,27 @@ function SpecialDaysList({
   onEdit: (specialDay: SpecialDay) => void; 
   onDelete: (specialDay: SpecialDay) => void; 
 }) {
+  // Get the year and month from the selected date
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth() + 1; // JavaScript months are 0-based
+  
   const { data: specialDays, isLoading } = useQuery<SpecialDay[]>({
-    queryKey: ["/api/special-days/month", { 
-      year: currentMonth.getFullYear(), 
-      month: currentMonth.getMonth() + 1 
-    }],
-    queryFn: async ({ queryKey }) => {
-      const [, params] = queryKey as [string, { year: number; month: number }];
-      const res = await fetch(`/api/special-days/month?year=${params.year}&month=${params.month}`);
-      if (!res.ok) throw new Error("Failed to fetch special days");
-      return res.json();
+    queryKey: ["/api/special-days/month", year, month],
+    queryFn: async () => {
+      try {
+        const response = await fetch(`/api/special-days/month?year=${year}&month=${month}`, {
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Error fetching special days: ${response.status}`);
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.error("Error fetching special days:", error);
+        throw new Error("Failed to fetch special days");
+      }
     }
   });
 
@@ -206,17 +217,45 @@ function SpecialDayDialog({
     }
   }, [form, isOpen, isEditing, specialDay]);
   
+  // We'll use the parent component's mutations passed as props
   const handleSubmit = async (data: SpecialDayFormValues) => {
     try {
-      // Create or update the special day
+      toast({
+        title: "Saving...",
+        description: "Processing your request"
+      });
+      
+      if (form.formState.isSubmitting) return;
+      
       if (isEditing && specialDay) {
-        await updateSpecialDayMutation.mutateAsync({ 
-          id: specialDay.id, 
-          data
+        // For an existing special day (update)
+        const response = await fetch(`/api/admin/special-days/${specialDay.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
         });
+        
+        if (!response.ok) throw new Error('Failed to update special day');
       } else {
-        await createSpecialDayMutation.mutateAsync(data);
+        // For a new special day (create)
+        const response = await fetch('/api/admin/special-days', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        if (!response.ok) throw new Error('Failed to create special day');
       }
+      
+      // Invalidate queries after success
+      queryClient.invalidateQueries({ queryKey: ["/api/special-days"] });
+      
+      // Close dialog and show success message
+      onClose();
+      toast({
+        title: "Success",
+        description: isEditing ? "Special day updated" : "Special day created"
+      });
     } catch (error) {
       console.error("Error saving special day:", error);
       toast({
@@ -806,10 +845,41 @@ export default function AdminPage() {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => {
+                      <AlertDialogAction onClick={async () => {
                         if (specialDayToDelete) {
-                          deleteSpecialDayMutation.mutate(specialDayToDelete.id);
-                          setSpecialDayToDelete(null);
+                          try {
+                            toast({
+                              title: "Deleting...",
+                              description: "Removing special day"
+                            });
+                            
+                            // Direct API call to ensure we have access to proper error handling
+                            const response = await fetch(`/api/admin/special-days/${specialDayToDelete.id}`, {
+                              method: 'DELETE',
+                              credentials: 'include'
+                            });
+                            
+                            if (!response.ok) {
+                              throw new Error(`Failed to delete special day: ${response.status}`);
+                            }
+                            
+                            // Invalidate the special days query to refresh the data
+                            queryClient.invalidateQueries({ queryKey: ["/api/special-days"] });
+                            
+                            toast({
+                              title: "Success",
+                              description: "Special day deleted successfully"
+                            });
+                          } catch (error) {
+                            console.error("Error deleting special day:", error);
+                            toast({
+                              title: "Error",
+                              description: "Failed to delete special day",
+                              variant: "destructive"
+                            });
+                          } finally {
+                            setSpecialDayToDelete(null);
+                          }
                         }
                       }}>
                         Delete
