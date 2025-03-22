@@ -4,6 +4,9 @@ import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { ZodError } from "zod";
 import { insertAvailabilitySchema, deadlineDaySchema } from "@shared/schema";
+import nodemailer from "nodemailer";
+import { renderToBuffer } from "@react-pdf/renderer";
+import { RosterPDF } from "../client/src/components/roster-pdf";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -124,6 +127,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ format });
     } catch (err) {
       res.status(500).json({ message: "Failed to update name format" });
+    }
+  });
+
+  app.post("/api/admin/send-roster", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user.isAdmin) {
+      return res.sendStatus(403);
+    }
+
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ message: "Email address is required" });
+      }
+
+      // Get roster data
+      const availability = await storage.getAvailability();
+      const currentMonth = new Date();
+
+      // Group users by service date
+      const rosterData: { [key: string]: any[] } = {};
+      availability.forEach(record => {
+        const date = record.serviceDate;
+        if (!rosterData[date]) {
+          rosterData[date] = [];
+        }
+        rosterData[date].push(record.user);
+      });
+
+      // Generate PDF
+      const pdfBuffer = await renderToBuffer(
+        <RosterPDF month={currentMonth} rosterData={rosterData} />
+      );
+
+      // Configure email transporter
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT || "587"),
+        secure: process.env.SMTP_SECURE === "true",
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+      });
+
+      // Send email
+      await transporter.sendMail({
+        from: process.env.SMTP_FROM,
+        to: email,
+        subject: `Church Service Roster - ${currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}`,
+        text: "Please find attached the church service roster for this month.",
+        attachments: [
+          {
+            filename: 'roster.pdf',
+            content: pdfBuffer,
+          },
+        ],
+      });
+
+      res.json({ message: "Roster sent successfully" });
+    } catch (err) {
+      console.error("Error sending roster:", err);
+      res.status(500).json({ message: "Failed to send roster" });
     }
   });
 
