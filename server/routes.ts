@@ -503,28 +503,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("Creating special day with data:", JSON.stringify(req.body));
       
-      const data = insertSpecialDaySchema.parse(req.body);
-      console.log("Parsed data:", JSON.stringify(data));
+      // Validate the request body format first
+      if (req.body.date) {
+        try {
+          if (typeof req.body.date === 'string') {
+            // Try to parse and standardize the date format
+            const parsed = new Date(req.body.date);
+            if (!isNaN(parsed.getTime())) {
+              // If valid date, standardize format to YYYY-MM-DD
+              req.body.date = parsed.toISOString().split('T')[0];
+              console.log("Standardized date format:", req.body.date);
+            } else {
+              console.error("Invalid date format received:", req.body.date);
+              return res.status(400).json({ message: "Invalid date format" });
+            }
+          } else if (typeof req.body.date === 'object' && req.body.date !== null) {
+            // Handle case when client sends a Date object in JSON
+            console.log("Date is an object:", JSON.stringify(req.body.date));
+          }
+        } catch (error) {
+          console.error("Error parsing date:", error);
+          return res.status(400).json({ message: "Invalid date format" });
+        }
+      } else {
+        console.error("No date provided in request");
+        return res.status(400).json({ message: "Date is required" });
+      }
       
-      const specialDay = await storage.createSpecialDay(data);
-      console.log("Created special day:", JSON.stringify(specialDay));
-      
-      res.status(201).json(specialDay);
+      // Validate against schema
+      try {
+        const data = insertSpecialDaySchema.parse(req.body);
+        console.log("Parsed data:", JSON.stringify(data));
+        
+        const specialDay = await storage.createSpecialDay(data);
+        console.log("Created special day:", JSON.stringify(specialDay));
+        
+        res.status(201).json(specialDay);
+      } catch (err) {
+        if (err instanceof ZodError) {
+          console.error("Validation error:", JSON.stringify(err.errors));
+          res.status(400).json({ 
+            message: "Invalid special day data", 
+            errors: err.errors 
+          });
+        } else {
+          throw err; // Re-throw for the outer catch block
+        }
+      }
     } catch (err) {
       console.error("Error creating special day:", err);
-      
-      if (err instanceof ZodError) {
-        console.log("Validation error:", JSON.stringify(err.errors));
-        res.status(400).json({ 
-          message: "Invalid special day data", 
-          errors: err.errors 
-        });
-      } else {
-        res.status(500).json({ 
-          message: "Failed to create special day",
-          error: err instanceof Error ? err.message : String(err)
-        });
-      }
+      res.status(500).json({ 
+        message: "Failed to create special day",
+        error: err instanceof Error ? err.message : String(err)
+      });
     }
   });
   
@@ -534,16 +565,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     try {
+      console.log("Update special day request received for ID:", req.params.id);
+      console.log("Request body:", JSON.stringify(req.body));
+      
       const id = parseInt(req.params.id);
+      
+      // Validate the request body format
+      if (req.body.date && typeof req.body.date === 'string') {
+        try {
+          // Try to parse and standardize the date format
+          const parsed = new Date(req.body.date);
+          if (!isNaN(parsed.getTime())) {
+            // If valid date, standardize format to YYYY-MM-DD
+            req.body.date = parsed.toISOString().split('T')[0];
+            console.log("Standardized date format:", req.body.date);
+          } else {
+            console.error("Invalid date format received:", req.body.date);
+            return res.status(400).json({ message: "Invalid date format" });
+          }
+        } catch (error) {
+          console.error("Error parsing date:", error);
+          return res.status(400).json({ message: "Invalid date format" });
+        }
+      }
+      
       const specialDay = await storage.updateSpecialDay(id, req.body);
+      console.log("Special day successfully updated:", JSON.stringify(specialDay));
       res.json(specialDay);
     } catch (err) {
+      console.error("Error updating special day:", err);
+      
       if (err instanceof Error && err.message === "Special day not found") {
         res.status(404).json({ message: err.message });
       } else if (err instanceof ZodError) {
-        res.status(400).json({ message: "Invalid special day data" });
+        console.error("Validation error:", JSON.stringify(err.errors));
+        res.status(400).json({ 
+          message: "Invalid special day data", 
+          errors: err.errors 
+        });
       } else {
-        res.status(500).json({ message: "Failed to update special day" });
+        res.status(500).json({ 
+          message: "Failed to update special day",
+          error: err instanceof Error ? err.message : String(err)
+        });
       }
     }
   });
