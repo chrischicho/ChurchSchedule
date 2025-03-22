@@ -23,7 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { User, Settings } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Trash2, Mail } from "lucide-react";
 
 export default function AdminPage() {
   const { user } = useAuth();
@@ -33,6 +33,8 @@ export default function AdminPage() {
   const [nameFormat, setNameFormat] = useState("full");
   const [memberToDelete, setMemberToDelete] = useState<User | null>(null);
   const [deadlineDay, setDeadlineDay] = useState(20); // Default to 20th
+  const [emailAddress, setEmailAddress] = useState("");
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/members"],
@@ -169,6 +171,46 @@ export default function AdminPage() {
 
     createMemberMutation.mutate({ firstName, lastName });
   };
+
+  const sendRosterEmailMutation = useMutation({
+    mutationFn: async (data: { email: string }) => {
+      const res = await apiRequest("POST", "/api/admin/send-roster", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Roster has been sent to the specified email address",
+      });
+      setEmailAddress("");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSendRoster = async () => {
+    if (!emailAddress) {
+      toast({
+        title: "Error",
+        description: "Please enter an email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsSendingEmail(true);
+      await sendRosterEmailMutation.mutateAsync({ email: emailAddress });
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
 
   if (!user?.isAdmin) {
     return (
@@ -315,6 +357,39 @@ export default function AdminPage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Send Roster</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Email Address</label>
+                <div className="flex gap-2">
+                  <Input
+                    type="email"
+                    placeholder="Enter email address"
+                    value={emailAddress}
+                    onChange={(e) => setEmailAddress(e.target.value)}
+                  />
+                  <Button
+                    onClick={handleSendRoster}
+                    disabled={isSendingEmail}
+                    className="whitespace-nowrap"
+                  >
+                    {isSendingEmail ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Mail className="h-4 w-4 mr-2" />
+                    )}
+                    Send Roster
+                  </Button>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  The current month's roster will be sent as a PDF attachment.
+                </p>
               </div>
             </CardContent>
           </Card>
