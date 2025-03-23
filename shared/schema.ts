@@ -66,6 +66,23 @@ export const updatePinSchema = z.object({
   newPin: z.string().regex(/^\d{4,6}$/, "PIN must be 4-6 digits")
 });
 
+export const updateProfileSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  currentPin: z.string().regex(/^\d{4,6}$/, "Current PIN must be 4-6 digits"),
+  newPin: z.string().regex(/^\d{4,6}$/, "New PIN must be 4-6 digits").optional(),
+  confirmPin: z.string().regex(/^\d{4,6}$/, "Confirm PIN must be 4-6 digits").optional(),
+}).refine((data) => {
+  // If newPin is provided, confirmPin must match
+  if (data.newPin && data.newPin !== data.confirmPin) {
+    return false;
+  }
+  return true;
+}, {
+  message: "PINs do not match",
+  path: ["confirmPin"]
+});
+
 export const nameFormatSchema = z.enum(['full', 'first', 'last', 'initials']);
 
 // Schema for validating deadline day
@@ -76,6 +93,7 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Availability = typeof availability.$inferSelect;
 export type InsertAvailability = z.infer<typeof insertAvailabilitySchema>;
 export type UpdatePin = z.infer<typeof updatePinSchema>;
+export type UpdateProfile = z.infer<typeof updateProfileSchema>;
 export type NameFormat = z.infer<typeof nameFormatSchema>;
 export type Settings = typeof settings.$inferSelect;
 export type InsertSettings = z.infer<typeof insertSettingsSchema>;
