@@ -49,12 +49,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { User, SpecialDay } from "@shared/schema";
+import { User, SpecialDay, CustomInitials } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Trash2, Mail, Settings, Calendar as CalendarIcon, Plus, Edit, Star } from "lucide-react";
+import { Trash2, Mail, Settings, Calendar as CalendarIcon, Plus, Edit, Star, UserCog } from "lucide-react";
 import { ChurchLoader } from "@/components/church-loader";
 import { LoaderOverlay } from "@/components/loader-overlay";
 
@@ -1175,6 +1175,7 @@ export default function AdminPage() {
                   <thead>
                     <tr className="border-b">
                       <th className="p-4 text-left">Name</th>
+                      <th className="p-4 text-left">Initials</th>
                       <th className="p-4 text-left">Role</th>
                       <th className="p-4 text-left">Actions</th>
                     </tr>
@@ -1186,18 +1187,32 @@ export default function AdminPage() {
                           {member.firstName} {member.lastName}
                         </td>
                         <td className="p-4">
+                          {member.initials || "N/A"}
+                        </td>
+                        <td className="p-4">
                           {member.isAdmin ? "Admin" : "Member"}
                         </td>
                         <td className="p-4">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                            onClick={() => handleDeleteMember(member)}
-                            disabled={deleteMemberMutation.isPending || member.id === user?.id}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              title="Edit Initials"
+                              onClick={() => handleEditInitials(member)}
+                            >
+                              <UserCog className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                              onClick={() => handleDeleteMember(member)}
+                              disabled={deleteMemberMutation.isPending || member.id === user?.id}
+                              title="Delete Member"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))}

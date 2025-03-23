@@ -75,6 +75,7 @@ export const updateProfileSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   initials: z.string().min(1, "Initials are required").max(5, "Initials should be at most 5 characters").optional(),
+  customInitials: z.string().min(1, "Initials are required").max(5, "Initials should be at most 5 characters").optional(),
   currentPin: z.string().regex(/^\d{4,6}$/, "Current PIN must be 4-6 digits"),
   newPin: z.string().regex(/^\d{4,6}$/, "New PIN must be 4-6 digits").optional(),
   confirmPin: z.string().regex(/^\d{4,6}$/, "Confirm PIN must be 4-6 digits").optional(),
