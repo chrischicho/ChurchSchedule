@@ -5,7 +5,8 @@ import {
   InsertAvailability, Availability, 
   Settings,
   Verse, InsertVerse,
-  SpecialDay, InsertSpecialDay
+  SpecialDay, InsertSpecialDay,
+  UpdateProfile
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, sql } from "drizzle-orm";

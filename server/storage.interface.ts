@@ -4,7 +4,8 @@ import {
   Availability, InsertAvailability, 
   Settings,
   Verse, InsertVerse,
-  SpecialDay, InsertSpecialDay
+  SpecialDay, InsertSpecialDay,
+  UpdateProfile
 } from "@shared/schema";
 
 export interface IStorage {
@@ -16,6 +17,7 @@ export interface IStorage {
   createUser(insertUser: InsertUser): Promise<User>;
   deleteUser(id: number): Promise<void>;
   updateUserPin(id: number, pin: string): Promise<User>;
+  updateUserProfile(id: number, data: Partial<UpdateProfile>): Promise<User>;
   getAllUsers(): Promise<User[]>;
   
   // Availability operations
