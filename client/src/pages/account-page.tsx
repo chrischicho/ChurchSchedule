@@ -101,11 +101,11 @@ export default function AccountPage() {
     mutationFn: async (data: ChangePinFormValues) => {
       // We don't send confirmNewPin to the server
       const { confirmNewPin, ...pinData } = data;
-      return apiRequest({
-        url: "/api/change-pin",
-        method: "POST",
-        body: pinData,
-      });
+      return apiRequest(
+        "POST",
+        "/api/change-pin",
+        pinData
+      );
     },
     onSuccess: () => {
       toast({
