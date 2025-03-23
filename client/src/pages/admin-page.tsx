@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -67,7 +68,6 @@ const specialDaySchema = z.object({
 });
 
 type SpecialDayFormValues = z.infer<typeof specialDaySchema>;
-type InitialsFormValues = z.infer<typeof customInitialsSchema>;
 
 // Component to display the list of special days
 function SpecialDaysList({ 
@@ -501,6 +501,8 @@ function SpecialDayDialog({
 const initialsFormSchema = z.object({
   initials: z.string().min(1, "Initials are required").max(5, "Initials should be at most 5 characters"),
 });
+
+type InitialsFormValues = z.infer<typeof initialsFormSchema>;
 
 // Initials Dialog component
 function InitialsDialog({
