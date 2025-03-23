@@ -25,6 +25,22 @@ export class DatabaseStorage implements IStorage {
       createTableIfMissing: true
     });
   }
+  
+  // Helper method to generate initials from first and last name
+  generateInitials(firstName: string, lastName: string): string {
+    // Extract first letter of first name and first letter of last name
+    return (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
+  }
+
+  // Check if initials already exist in the database
+  async checkInitialsExist(initials: string): Promise<boolean> {
+    const existingUsers = await db
+      .select()
+      .from(users)
+      .where(eq(users.initials, initials));
+    
+    return existingUsers.length > 0;
+  }
 
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
@@ -40,6 +56,35 @@ export class DatabaseStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     try {
       console.log(`Attempting to create user with data: ${JSON.stringify(insertUser)}`);
+      
+      // Generate initials if not provided
+      if (!insertUser.initials) {
+        const generatedInitials = this.generateInitials(insertUser.firstName, insertUser.lastName);
+        
+        // Check if these initials already exist
+        const exists = await this.checkInitialsExist(generatedInitials);
+        
+        if (exists) {
+          // If initials already exist, use a numbered suffix (e.g., CM2)
+          // This is a basic approach - in a real app, the admin might want to choose custom initials
+          const allUsers = await this.getAllUsers();
+          let counter = 2;
+          let testInitials = `${generatedInitials}${counter}`;
+          
+          // Keep trying with incremented numbers until we find unique initials
+          while (allUsers.some(u => u.initials === testInitials)) {
+            counter++;
+            testInitials = `${generatedInitials}${counter}`;
+          }
+          
+          insertUser.initials = testInitials;
+        } else {
+          // Use the generated initials if they don't exist
+          insertUser.initials = generatedInitials;
+        }
+      }
+      
+      // Insert user with generated or provided initials
       const [user] = await db
         .insert(users)
         .values({
@@ -48,6 +93,7 @@ export class DatabaseStorage implements IStorage {
           pin: "000000"
         })
         .returning();
+        
       console.log(`Created new user: ${JSON.stringify(user)}`);
       return user;
     } catch (error) {
@@ -103,6 +149,33 @@ export class DatabaseStorage implements IStorage {
     // Update name fields if provided
     if (data.firstName) updateData.firstName = data.firstName;
     if (data.lastName) updateData.lastName = data.lastName;
+    
+    // If first or last name changed, we may need to update initials
+    if (data.firstName || data.lastName || data.customInitials) {
+      // Custom initials take precedence if provided
+      if (data.customInitials) {
+        updateData.initials = data.customInitials;
+      } 
+      // Otherwise, if name changed, generate new initials
+      else if (data.firstName || data.lastName) {
+        const newFirstName = data.firstName || existingUser.firstName;
+        const newLastName = data.lastName || existingUser.lastName;
+        
+        // Generate new initials
+        const generatedInitials = this.generateInitials(newFirstName, newLastName);
+        
+        // Check if these initials would conflict with another user
+        const exists = await this.checkInitialsExist(generatedInitials);
+        if (exists && generatedInitials !== existingUser.initials) {
+          // If initials would conflict and they're different from the user's current initials
+          // Keep the existing initials (admin can set custom ones if needed)
+          updateData.initials = existingUser.initials;
+        } else {
+          // Use the generated initials if they don't conflict or are the same as current
+          updateData.initials = generatedInitials;
+        }
+      }
+    }
     
     // Update PIN if provided and validated
     if (data.newPin) {
@@ -236,7 +309,8 @@ export class DatabaseStorage implements IStorage {
       case 'last':
         return user.lastName;
       case 'initials':
-        return `${user.firstName[0]}${user.lastName[0]}`;
+        // Use stored initials field if available, otherwise generate from name
+        return user.initials || `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
       default:
         return `${user.firstName} ${user.lastName}`;
     }

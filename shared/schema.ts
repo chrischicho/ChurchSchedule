@@ -13,6 +13,7 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
+  initials: text("initials"), // Can be NULL initially, will be set based on first and last name
   pin: text("pin").notNull(),
   isAdmin: boolean("is_admin").default(false).notNull(),
   firstLogin: boolean("first_login").default(true).notNull(),
@@ -66,9 +67,14 @@ export const updatePinSchema = z.object({
   newPin: z.string().regex(/^\d{4,6}$/, "PIN must be 4-6 digits")
 });
 
+export const customInitialsSchema = z.object({
+  initials: z.string().min(1, "Initials are required").max(5, "Initials should be at most 5 characters")
+});
+
 export const updateProfileSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
+  initials: z.string().min(1, "Initials are required").max(5, "Initials should be at most 5 characters").optional(),
   currentPin: z.string().regex(/^\d{4,6}$/, "Current PIN must be 4-6 digits"),
   newPin: z.string().regex(/^\d{4,6}$/, "New PIN must be 4-6 digits").optional(),
   confirmPin: z.string().regex(/^\d{4,6}$/, "Confirm PIN must be 4-6 digits").optional(),
@@ -94,6 +100,7 @@ export type Availability = typeof availability.$inferSelect;
 export type InsertAvailability = z.infer<typeof insertAvailabilitySchema>;
 export type UpdatePin = z.infer<typeof updatePinSchema>;
 export type UpdateProfile = z.infer<typeof updateProfileSchema>;
+export type CustomInitials = z.infer<typeof customInitialsSchema>;
 export type NameFormat = z.infer<typeof nameFormatSchema>;
 export type Settings = typeof settings.$inferSelect;
 export type InsertSettings = z.infer<typeof insertSettingsSchema>;
