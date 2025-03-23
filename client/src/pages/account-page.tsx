@@ -58,6 +58,7 @@ export default function AccountPage() {
     defaultValues: {
       firstName: user?.firstName || "",
       lastName: user?.lastName || "",
+      currentPin: "", // Add default value for currentPin
     },
   });
 
@@ -186,6 +187,20 @@ export default function AccountPage() {
                         <FormLabel>Last Name</FormLabel>
                         <FormControl>
                           <Input placeholder="Last name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={profileForm.control}
+                    name="currentPin"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Enter Current PIN to Confirm</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="Current PIN" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
