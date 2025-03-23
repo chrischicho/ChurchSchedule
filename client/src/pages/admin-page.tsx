@@ -496,6 +496,108 @@ function SpecialDayDialog({
   );
 }
 
+// Initials form schema
+const initialsFormSchema = z.object({
+  initials: z.string().min(1, "Initials are required").max(5, "Initials should be at most 5 characters"),
+});
+
+type InitialsFormValues = z.infer<typeof initialsFormSchema>;
+
+// Initials Dialog component
+function InitialsDialog({
+  isOpen,
+  onClose,
+  member,
+  onSave
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  member: User | null;
+  onSave: (userId: number, initials: string) => void;
+}) {
+  const { toast } = useToast();
+  const [isPending, setIsPending] = useState(false);
+  
+  const form = useForm<InitialsFormValues>({
+    resolver: zodResolver(initialsFormSchema),
+    defaultValues: {
+      initials: member?.initials || ''
+    }
+  });
+  
+  // Reset the form when the dialog opens/closes or member changes
+  useEffect(() => {
+    if (isOpen && member) {
+      form.reset({
+        initials: member.initials || ''
+      });
+    }
+  }, [isOpen, member, form]);
+  
+  const handleSubmit = async (data: InitialsFormValues) => {
+    if (!member) return;
+    
+    try {
+      setIsPending(true);
+      onSave(member.id, data.initials);
+      onClose();
+    } catch (error) {
+      console.error("Error updating initials:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update initials",
+        variant: "destructive"
+      });
+    } finally {
+      setIsPending(false);
+    }
+  };
+  
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Edit Member Initials</DialogTitle>
+          <DialogDescription>
+            Update the initials for {member?.firstName} {member?.lastName}.
+            These initials will be used in the roster and availability views.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="initials"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Initials</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., JD, ABC" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    Initials should be 1-5 characters long.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <DialogFooter>
+              <Button type="submit" disabled={isPending}>
+                {isPending ? (
+                  <ChurchLoader type="users" size="xs" className="mr-2" />
+                ) : null}
+                Save Initials
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function AdminPage() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -503,6 +605,8 @@ export default function AdminPage() {
   const [lastName, setLastName] = useState("");
   const [nameFormat, setNameFormat] = useState("full");
   const [memberToDelete, setMemberToDelete] = useState<User | null>(null);
+  const [memberToEditInitials, setMemberToEditInitials] = useState<User | null>(null);
+  const [initialsDialogOpen, setInitialsDialogOpen] = useState(false);
   const [deadlineDay, setDeadlineDay] = useState(20); // Default to 20th
   const [emailAddress, setEmailAddress] = useState("");
   const [isSendingEmail, setIsSendingEmail] = useState(false);
@@ -707,6 +811,42 @@ export default function AdminPage() {
       });
     },
   });
+  
+  // Initials update mutation
+  const updateInitialsMutation = useMutation({
+    mutationFn: async ({ userId, initials }: { userId: number, initials: string }) => {
+      const res = await apiRequest("PATCH", `/api/admin/members/${userId}/initials`, { initials });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      setInitialsDialogOpen(false);
+      setMemberToEditInitials(null);
+      toast({
+        title: "Success",
+        description: "Member initials updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update initials",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Handle edit initials
+  const handleEditInitials = (member: User) => {
+    setMemberToEditInitials(member);
+    setInitialsDialogOpen(true);
+  };
+  
+  // Handle save initials
+  const handleSaveInitials = (userId: number, initials: string) => {
+    updateInitialsMutation.mutate({ userId, initials });
+  };
 
   const handleDeleteMember = (member: User) => {
     if (user && member.id === user.id) {
