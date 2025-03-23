@@ -8,6 +8,7 @@ import AuthPage from "@/pages/auth-page";
 import HomePage from "@/pages/home-page";
 import RosterPage from "@/pages/roster-page";
 import AdminPage from "@/pages/admin-page";
+import AccountPage from "@/pages/account-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { FirstLoginModal } from "@/components/first-login-modal";
 import { SplashScreen } from "@/components/splash-screen";
@@ -19,6 +20,7 @@ function Router() {
       <ProtectedRoute path="/" component={HomePage} />
       <ProtectedRoute path="/roster" component={RosterPage} />
       <ProtectedRoute path="/admin" component={AdminPage} />
+      <ProtectedRoute path="/account" component={AccountPage} />
       <Route component={NotFound} />
     </Switch>
   );

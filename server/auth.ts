@@ -3,7 +3,7 @@ import { Strategy as LocalStrategy } from "passport-local";
 import { Express } from "express";
 import session from "express-session";
 import { storage } from "./storage";
-import { User as SelectUser, updatePinSchema } from "@shared/schema";
+import { User as SelectUser, updatePinSchema, updateProfileSchema } from "@shared/schema";
 import { ZodError } from "zod";
 
 declare global {
@@ -90,6 +90,30 @@ export function setupAuth(app: Express) {
         res.status(400).json({ message: "PIN must be 4-6 digits" });
       } else {
         res.status(500).json({ message: "Failed to update PIN" });
+      }
+    }
+  });
+
+  app.patch("/api/update-profile", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const data = updateProfileSchema.parse(req.body);
+      const updatedUser = await storage.updateUserProfile(req.user.id, data);
+      
+      // Update the session with the new user data
+      req.login(updatedUser, (err) => {
+        if (err) return res.status(500).json({ message: "Failed to update session" });
+        res.json(updatedUser);
+      });
+    } catch (err) {
+      if (err instanceof ZodError) {
+        res.status(400).json({ 
+          message: "Invalid profile data",
+          errors: err.format()
+        });
+      } else {
+        res.status(500).json({ message: "Failed to update profile" });
       }
     }
   });
