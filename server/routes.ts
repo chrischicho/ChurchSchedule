@@ -118,6 +118,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
   });
+  
+  // Update member initials
+  app.patch("/api/admin/members/:id/initials", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user.isAdmin) {
+      return res.sendStatus(403);
+    }
+    
+    try {
+      const userId = parseInt(req.params.id);
+      const { initials } = req.body;
+      
+      if (!initials || typeof initials !== 'string') {
+        return res.status(400).json({ message: "Valid initials are required" });
+      }
+      
+      // Update the user profile with custom initials
+      const updatedUser = await storage.updateUserProfile(userId, {
+        customInitials: initials
+      });
+      
+      res.json(updatedUser);
+    } catch (err) {
+      if (err instanceof Error) {
+        res.status(400).json({ message: err.message });
+      } else {
+        res.status(500).json({ message: "Failed to update member initials" });
+      }
+    }
+  });
 
   app.get("/api/admin/name-format", async (req, res) => {
     if (!req.isAuthenticated() || !req.user.isAdmin) {
