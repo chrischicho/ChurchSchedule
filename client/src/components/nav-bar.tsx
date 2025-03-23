@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Logo } from "./logo";
 import { Button } from "./ui/button";
-import { LogOut, Menu } from "lucide-react";
+import { LogOut, Menu, User } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -18,6 +18,7 @@ export function NavBar() {
   const navItems = [
     { href: "/", label: "Availability" },
     { href: "/roster", label: "Show Roster" },
+    { href: "/account", label: "Account", icon: User },
     ...(user?.isAdmin ? [{ href: "/admin", label: "Admin" }] : []),
   ];
 
@@ -44,6 +45,7 @@ export function NavBar() {
                       variant={location === item.href ? "default" : "ghost"}
                       className="w-full justify-start"
                     >
+                      {item.icon && <item.icon className="h-4 w-4 mr-2" />}
                       {item.label}
                     </Button>
                   </Link>
@@ -69,6 +71,7 @@ export function NavBar() {
                 <Button
                   variant={location === item.href ? "default" : "ghost"}
                 >
+                  {item.icon && <item.icon className="h-4 w-4 mr-2" />}
                   {item.label}
                 </Button>
               </Link>
