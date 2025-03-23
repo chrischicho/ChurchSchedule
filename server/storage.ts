@@ -89,6 +89,42 @@ export class DatabaseStorage implements IStorage {
     console.log(`Updated user PIN: ${JSON.stringify(user)}`);
     return user;
   }
+  
+  async updateUserProfile(id: number, data: Partial<UpdateProfile>): Promise<User> {
+    console.log(`Updating profile for user ${id}`);
+    
+    // Get the current user first
+    const [existingUser] = await db.select().from(users).where(eq(users.id, id));
+    if (!existingUser) throw new Error("User not found");
+    
+    // Extract fields for update
+    const updateData: Partial<User> = {};
+    
+    // Update name fields if provided
+    if (data.firstName) updateData.firstName = data.firstName;
+    if (data.lastName) updateData.lastName = data.lastName;
+    
+    // Update PIN if provided and validated
+    if (data.newPin) {
+      // Check if current PIN matches
+      if (data.currentPin !== existingUser.pin) {
+        throw new Error("Current PIN is incorrect");
+      }
+      updateData.pin = data.newPin;
+      updateData.firstLogin = false; // No longer first login after PIN change
+    }
+    
+    // Perform update
+    const [updatedUser] = await db
+      .update(users)
+      .set(updateData)
+      .where(eq(users.id, id))
+      .returning();
+    
+    if (!updatedUser) throw new Error("Failed to update user profile");
+    console.log(`Updated user profile: ${JSON.stringify(updatedUser)}`);
+    return updatedUser;
+  }
 
   async setAvailability(data: InsertAvailability): Promise<Availability> {
     // Convert date string to Date object for comparison
