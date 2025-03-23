@@ -149,7 +149,7 @@ export default function AccountPage() {
       />
       
       <div className="flex items-center mb-6">
-        <Link href="/home">
+        <Link href="/">
           <Button variant="ghost" size="sm" className="mr-4">
             <ChevronLeft className="h-4 w-4 mr-1" />
             Back
