@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { Link, useLocation } from "wouter";
 import {
   Form,
   FormControl,
@@ -31,6 +32,7 @@ import {
 import { LoaderOverlay } from "@/components/loader-overlay";
 import { updatePinSchema, updateProfileSchema, type UpdateProfile } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
+import { ChevronLeft } from "lucide-react";
 
 // Convert Zod schema to include PIN confirmation
 const changePinFormSchema = updatePinSchema.extend({
@@ -146,7 +148,15 @@ export default function AccountPage() {
         type="users" 
       />
       
-      <h1 className="text-3xl font-bold mb-6">Account Settings</h1>
+      <div className="flex items-center mb-6">
+        <Link href="/home">
+          <Button variant="ghost" size="sm" className="mr-4">
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Back
+          </Button>
+        </Link>
+        <h1 className="text-3xl font-bold">Account Settings</h1>
+      </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-2">
