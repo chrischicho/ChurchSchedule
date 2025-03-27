@@ -361,36 +361,37 @@ export function RosterBuilder() {
     <div className="w-full space-y-4">
       <h2 className="text-2xl font-bold mb-4">Roster Builder</h2>
 
+      {/* Month selector header - Top row */}
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="font-medium text-lg">Available Sundays</h3>
+        <div className="flex items-center space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handlePreviousMonth}
+            className="px-2 sm:px-3"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            <span className="hidden sm:inline ml-1">Previous</span>
+          </Button>
+          <span className="font-medium whitespace-nowrap">
+            {format(currentMonth, 'MMMM yyyy')}
+          </span>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleNextMonth}
+            className="px-2 sm:px-3"
+          >
+            <span className="hidden sm:inline mr-1">Next</span>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Left panel - Available Sundays */}
         <div className="md:col-span-1">
-          {/* Month selector header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 mb-4">
-            <h3 className="font-medium text-lg">Available Sundays</h3>
-            <div className="flex items-center space-x-2 self-end sm:self-auto">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={handlePreviousMonth}
-                className="px-2 sm:px-3"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                <span className="hidden sm:inline ml-1">Previous</span>
-              </Button>
-              <span className="font-medium whitespace-nowrap">
-                {format(currentMonth, 'MMMM yyyy')}
-              </span>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={handleNextMonth}
-                className="px-2 sm:px-3"
-              >
-                <span className="hidden sm:inline mr-1">Next</span>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
           
           {sundaysData && sundaysData.length > 0 ? (
             <div className="space-y-2">
