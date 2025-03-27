@@ -259,9 +259,15 @@ export function RosterBuilder() {
         // Let's do a comprehensive check to understand what's happening
         setIsConfirmDialogOpen(false); // Close dialog first
         
-        const year = selectedSunday.date.getFullYear();
-        const month = selectedSunday.date.getMonth() + 1; // Adjusting for 0-indexed months
-        const day = selectedSunday.date.getDate();
+        // Ensure we're working with a Date object
+        const sundayDate = new Date(selectedSunday.date);
+        console.log("Sunday date type:", typeof selectedSunday.date);
+        console.log("Sunday date value:", selectedSunday.date);
+        console.log("Converted date:", sundayDate);
+        
+        const year = sundayDate.getFullYear();
+        const month = sundayDate.getMonth() + 1; // Adjusting for 0-indexed months
+        const day = sundayDate.getDate();
         
         console.log(`=== DEBUG: Clearing assignments for date: ${year}-${month}-${day} ===`);
         console.log("Sunday Data:", selectedSunday);
