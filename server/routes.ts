@@ -147,6 +147,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
   });
+  
+  // Endpoint to update member name
+  app.patch("/api/admin/members/:id/name", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user.isAdmin) {
+      return res.sendStatus(403);
+    }
+    
+    try {
+      const userId = parseInt(req.params.id);
+      const { firstName, lastName } = req.body;
+      
+      if (!firstName || typeof firstName !== 'string' || !lastName || typeof lastName !== 'string') {
+        return res.status(400).json({ message: "Valid first and last name are required" });
+      }
+      
+      // Update the user profile with new name
+      const updatedUser = await storage.updateUserProfile(userId, {
+        firstName,
+        lastName
+      });
+      
+      res.json(updatedUser);
+    } catch (err) {
+      if (err instanceof Error) {
+        res.status(400).json({ message: err.message });
+      } else {
+        res.status(500).json({ message: "Failed to update member name" });
+      }
+    }
+  });
 
   app.get("/api/admin/name-format", async (req, res) => {
     if (!req.isAuthenticated() || !req.user.isAdmin) {

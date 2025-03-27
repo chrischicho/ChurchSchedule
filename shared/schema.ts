@@ -71,6 +71,11 @@ export const customInitialsSchema = z.object({
   initials: z.string().min(1, "Initials are required").max(5, "Initials should be at most 5 characters")
 });
 
+export const updateMemberNameSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required")
+});
+
 export const updateProfileSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
@@ -102,6 +107,7 @@ export type InsertAvailability = z.infer<typeof insertAvailabilitySchema>;
 export type UpdatePin = z.infer<typeof updatePinSchema>;
 export type UpdateProfile = z.infer<typeof updateProfileSchema>;
 export type CustomInitials = z.infer<typeof customInitialsSchema>;
+export type UpdateMemberName = z.infer<typeof updateMemberNameSchema>;
 export type NameFormat = z.infer<typeof nameFormatSchema>;
 export type Settings = typeof settings.$inferSelect;
 export type InsertSettings = z.infer<typeof insertSettingsSchema>;
