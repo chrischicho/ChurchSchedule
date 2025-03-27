@@ -63,7 +63,7 @@ export function RosterBuilder() {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [selectedSunday, setSelectedSunday] = useState<SundayData | null>(null);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
-  const [selectedAssignments, setSelectedAssignments] = useState<Record<number, number>>({});
+  const [selectedAssignments, setSelectedAssignments] = useState<Record<number, number[]>>({}); // Changed to array of user IDs
 
   // Get available Sundays with people
   const {
@@ -187,10 +187,14 @@ export function RosterBuilder() {
   useEffect(() => {
     if (selectedSunday) {
       // Initialize selections based on existing assignments
-      const initialSelections: Record<number, number> = {};
+      const initialSelections: Record<number, number[]> = {};
       
+      // Group existing assignments by roleId
       selectedSunday.assignments.forEach(assignment => {
-        initialSelections[assignment.roleId] = assignment.userId;
+        if (!initialSelections[assignment.roleId]) {
+          initialSelections[assignment.roleId] = [];
+        }
+        initialSelections[assignment.roleId].push(assignment.userId);
       });
       
       setSelectedAssignments(initialSelections);
@@ -227,27 +231,28 @@ export function RosterBuilder() {
       }
     });
     
-    // Count from current selected assignments (excluding the assignment being replaced)
-    Object.entries(selectedAssignments).forEach(([currentRoleId, _userId]) => {
-      // Only count if it's the same role and doesn't already exist in database assignments
-      if (
-        parseInt(currentRoleId) === roleId && 
-        !selectedSunday.assignments.some(a => a.roleId === roleId && a.userId === _userId)
-      ) {
-        assignedCount++;
-      }
-    });
+    // Count from current selected assignments
+    if (selectedAssignments[roleId]) {
+      // Add the number of selected users for this role
+      // We don't need to worry about duplicates as we're handling that in the assignment logic
+      assignedCount += selectedAssignments[roleId].length;
+    }
     
     return assignedCount >= maxAllowed;
   };
 
   // Handle role assignment
   const handleAssignRole = (roleId: number, userId: number, roleName: string) => {
-    // If this person is already assigned to this role, unassign them
-    if (selectedAssignments[roleId] === userId) {
+    // Check if this person is already assigned to this role, and if so, unassign them
+    if (selectedAssignments[roleId]?.includes(userId)) {
       setSelectedAssignments(prev => {
         const updated = { ...prev };
-        delete updated[roleId];
+        // Filter out this user from the array
+        updated[roleId] = updated[roleId].filter(id => id !== userId);
+        // If no users left for this role, remove the role entry
+        if (updated[roleId].length === 0) {
+          delete updated[roleId];
+        }
         return updated;
       });
       return;
@@ -255,8 +260,8 @@ export function RosterBuilder() {
     
     // Check if this person is already assigned to another role in the selected assignments
     const isAssignedToAnotherRole = Object.entries(selectedAssignments).some(
-      ([currentRoleId, currentUserId]) => 
-        parseInt(currentRoleId) !== roleId && currentUserId === userId
+      ([currentRoleId, userIds]) => 
+        parseInt(currentRoleId) !== roleId && userIds.includes(userId)
     );
     
     // Check if this person is already assigned to another role in the database assignments
@@ -275,7 +280,7 @@ export function RosterBuilder() {
     }
     
     // Check if role has reached max limit and this would be a new assignment
-    if (isRoleFull(roleId, roleName) && !selectedAssignments[roleId]) {
+    if (isRoleFull(roleId, roleName)) {
       const limit = ROLE_LIMITS[roleName] || 1;
       toast({
         title: `Maximum ${roleName}s Reached`,
@@ -287,41 +292,51 @@ export function RosterBuilder() {
     }
     
     // Proceed with assignment
-    setSelectedAssignments(prev => ({
-      ...prev,
-      [roleId]: userId
-    }));
+    setSelectedAssignments(prev => {
+      const updated = { ...prev };
+      if (!updated[roleId]) {
+        updated[roleId] = [];
+      }
+      updated[roleId] = [...updated[roleId], userId];
+      return updated;
+    });
   };
 
   // Save all assignments for the selected Sunday
   const handleSaveAssignments = async () => {
     if (!selectedSunday) return;
 
-    // Convert to array of promises for each assignment
-    const assignmentPromises = Object.entries(selectedAssignments).map(
-      async ([roleId, userId]) => {
-        // Check if this is a change from existing assignments
-        const existingAssignment = selectedSunday.assignments.find(
-          a => a.roleId === parseInt(roleId)
+    // Create an array of all assignments to be made
+    const allAssignmentPromises: Promise<any>[] = [];
+    
+    // Process each role and its assigned users
+    Object.entries(selectedAssignments).forEach(([roleId, userIds]) => {
+      // For each user ID in the array, create an assignment
+      userIds.forEach(userId => {
+        // Check if this user is already assigned to this role
+        const isExistingAssignment = selectedSunday.assignments.some(
+          a => a.roleId === parseInt(roleId) && a.userId === userId
         );
-
-        // If same user already assigned, skip
-        if (existingAssignment && existingAssignment.userId === userId) {
-          return null;
+        
+        // Skip if already assigned
+        if (isExistingAssignment) {
+          return;
         }
-
+        
         // Create new assignment
-        return createAssignmentMutation.mutateAsync({
+        const promise = createAssignmentMutation.mutateAsync({
           roleId: parseInt(roleId),
           userId,
           serviceDate: selectedSunday.dateStr
         });
-      }
-    );
+        
+        allAssignmentPromises.push(promise);
+      });
+    });
 
     try {
       // Wait for all assignment operations to complete
-      await Promise.all(assignmentPromises.filter(Boolean));
+      await Promise.all(allAssignmentPromises);
       toast({
         title: "Roster saved",
         description: "All assignments have been saved successfully.",
@@ -643,8 +658,8 @@ export function RosterBuilder() {
                           {selectedSunday.availablePeople.map(person => {
                             // Check if person is already assigned to another role
                             const isAssignedElsewhere = selectedSunday.assignments.some(a => a.userId === person.id && a.roleId !== role.id) || 
-                                                      Object.entries(selectedAssignments).some(([otherRoleId, userId]) => 
-                                                        parseInt(otherRoleId) !== role.id && userId === person.id);
+                                                      Object.entries(selectedAssignments).some(([otherRoleId, userIds]) => 
+                                                        parseInt(otherRoleId) !== role.id && userIds.includes(person.id));
                                                         
                             if (isAssignedElsewhere) {
                               return (
@@ -670,8 +685,8 @@ export function RosterBuilder() {
                                   key={`${role.id}-${person.id}`}
                                   className={`
                                     border rounded-md p-2 text-sm cursor-pointer relative
-                                    ${selectedAssignments[role.id] === person.id ? 'bg-primary/20 border-primary' : 'hover:bg-muted/50'}
-                                    ${isRoleFull(role.id, role.name) && !selectedAssignments[role.id] ? 'opacity-50 cursor-not-allowed' : ''}
+                                    ${selectedAssignments[role.id]?.includes(person.id) ? 'bg-primary/20 border-primary' : 'hover:bg-muted/50'}
+                                    ${isRoleFull(role.id, role.name) && !(selectedAssignments[role.id]?.includes(person.id)) ? 'opacity-50 cursor-not-allowed' : ''}
                                   `}
                                   onClick={() => handleAssignRole(role.id, person.id, role.name)}
                                 >
