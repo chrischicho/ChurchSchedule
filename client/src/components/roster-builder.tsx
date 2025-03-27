@@ -656,7 +656,6 @@ export function RosterBuilder() {
                                       >
                                         <p className="font-medium truncate">{person.formattedName}</p>
                                         <p className="text-xs text-muted-foreground truncate">{person.initials}</p>
-                                        <Badge variant="secondary" className="mt-1 text-xs">Already assigned</Badge>
                                       </div>
                                     </TooltipTrigger>
                                     <TooltipContent>
@@ -678,9 +677,6 @@ export function RosterBuilder() {
                                 >
                                   <p className="font-medium truncate">{person.formattedName}</p>
                                   <p className="text-xs text-muted-foreground truncate">{person.initials}</p>
-                                  {selectedSunday.assignments.some(a => a.roleId === role.id && a.userId === person.id) && (
-                                    <Badge variant="outline" className="mt-1">Assigned</Badge>
-                                  )}
                                 </div>
                               );
                             }
