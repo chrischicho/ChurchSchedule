@@ -870,14 +870,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const month = parseInt(req.params.month) - 1; // JS months are 0-indexed
       const day = parseInt(req.params.day);
       
+      if (isNaN(year) || isNaN(month) || isNaN(day)) {
+        console.error(`Invalid date parameters: year=${req.params.year}, month=${req.params.month}, day=${req.params.day}`);
+        return res.status(400).json({ message: "Invalid date parameters" });
+      }
+      
       console.log(`Clearing assignments for date: ${year}-${month+1}-${day}`);
       const date = new Date(year, month, day);
+      
+      if (isNaN(date.getTime())) {
+        console.error(`Invalid date created: ${date}`);
+        return res.status(400).json({ message: "Invalid date" });
+      }
+      
       console.log(`Parsed date: ${date.toISOString()}`);
       
-      await storage.clearRosterAssignmentsForDate(date);
-      console.log("Successfully cleared assignments");
+      const deletedCount = await storage.clearRosterAssignmentsForDate(date);
+      console.log(`Successfully cleared ${deletedCount} assignments`);
       
-      res.status(200).json({ success: true });
+      res.status(200).json({ 
+        success: true,
+        deleted: deletedCount,
+        date: date.toISOString().split('T')[0] 
+      });
     } catch (err) {
       console.error("Error clearing roster assignments for date:", err);
       res.status(500).json({ message: "Failed to clear roster assignments" });

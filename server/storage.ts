@@ -665,8 +665,12 @@ export class DatabaseStorage implements IStorage {
     await db.delete(rosterAssignments).where(eq(rosterAssignments.id, id));
   }
   
-  async clearRosterAssignmentsForDate(date: Date): Promise<void> {
+  async clearRosterAssignmentsForDate(date: Date): Promise<number> {
     try {
+      if (!date || isNaN(date.getTime())) {
+        throw new Error(`Invalid date provided: ${date}`);
+      }
+      
       const dateStr = this.formatDateToString(date);
       console.log(`Clearing roster assignments for date string: ${dateStr}`);
       
@@ -676,14 +680,22 @@ export class DatabaseStorage implements IStorage {
         .from(rosterAssignments)
         .where(eq(rosterAssignments.serviceDate, dateStr));
       
-      console.log(`Found ${existingAssignments.length} assignments to clear for ${dateStr}`);
+      console.log(`Found ${existingAssignments.length} assignments to clear for ${dateStr}:`, JSON.stringify(existingAssignments));
+      
+      if (existingAssignments.length === 0) {
+        console.log(`No assignments found to delete for ${dateStr}`);
+        return 0; // Return 0 to indicate no records were deleted
+      }
       
       // Delete the assignments
+      // Use the node-postgres count feature
       const result = await db
         .delete(rosterAssignments)
-        .where(eq(rosterAssignments.serviceDate, dateStr));
+        .where(eq(rosterAssignments.serviceDate, dateStr))
+        .returning();
       
-      console.log(`Deletion completed successfully`);
+      console.log(`Deletion completed, affected rows:`, result.length);
+      return result.length; // Return the number of deleted records
     } catch (error) {
       console.error(`Error in clearRosterAssignmentsForDate:`, error);
       throw error; // Re-throw to be handled by the caller
