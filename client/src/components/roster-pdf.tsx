@@ -1,7 +1,7 @@
 import React from "react";
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import { format } from "date-fns";
-import { User, Verse, ServiceRole } from "@shared/schema";
+import { User, Verse } from "@shared/schema";
 import { PDFVerse } from "./pdf-verse";
 
 const styles = StyleSheet.create({
@@ -56,13 +56,6 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     color: "#444444",
   },
-  role: {
-    fontSize: 13,
-    fontWeight: "bold",
-    marginTop: 8,
-    marginBottom: 4,
-    color: "#333333",
-  },
   noMembers: {
     fontSize: 12,
     fontStyle: "italic",
@@ -103,19 +96,6 @@ const styles = StyleSheet.create({
   },
   dateCell: {
     flex: 1.5,
-    fontSize: 11,
-    color: '#444444',
-    paddingHorizontal: 5,
-  },
-  roleCell: {
-    flex: 1,
-    fontSize: 11,
-    fontWeight: "bold",
-    color: "#333333",
-    paddingHorizontal: 5,
-  },
-  memberCell: {
-    flex: 2,
     fontSize: 11,
     color: '#444444',
     paddingHorizontal: 5,
@@ -188,11 +168,11 @@ export function RosterPDF({ month, rosterData, viewType = "card", verse, ...prop
                         .sort(sortUsers)
                         .map((user) => (
                           <Text key={user.id} style={styles.member}>
-                            • {formatName(user)} {user.role && `(${user.role.name})`}
+                            • {formatName(user)}
                           </Text>
                         ))
                     ) : (
-                      <Text style={styles.noMembers}>No members assigned</Text>
+                      <Text style={styles.noMembers}>No members available</Text>
                     )}
                   </View>
                 </View>
@@ -211,51 +191,30 @@ export function RosterPDF({ month, rosterData, viewType = "card", verse, ...prop
           <View style={styles.section}>
             <View style={[styles.tableRow, styles.tableHeader]}>
               <Text style={styles.dateCell}>Service Date</Text>
-              <Text style={styles.roleCell}>Role</Text>
-              <Text style={styles.memberCell}>Member</Text>
+              <Text style={styles.tableCell}>Members</Text>
             </View>
             
             {sortedDates.map(date => {
               const isoDateStr = date.toISOString();
               const users = processedRosterData[isoDateStr] || [];
               
-              return users.length > 0 ? (
-                users.sort(sortUsers).map((user, idx) => (
-                  <View key={`${isoDateStr}-${user.id}`} style={styles.tableRow}>
-                    {idx === 0 ? (
-                      <Text style={styles.dateCell}>
-                        {format(date, "dd/MM/yyyy")}
-                      </Text>
-                    ) : (
-                      <Text style={styles.dateCell}></Text>
-                    )}
-                    <Text style={styles.roleCell}>
-                      {user.role ? user.role.name : ''}
-                    </Text>
-                    <Text style={styles.memberCell}>
-                      {formatName(user)}
-                    </Text>
-                  </View>
-                ))
-              ) : (
+              return (
                 <View key={isoDateStr} style={styles.tableRow}>
                   <Text style={styles.dateCell}>
                     {format(date, "dd/MM/yyyy")}
                   </Text>
-                  <Text style={styles.roleCell}></Text>
-                  <Text style={styles.memberCell}>
-                    No members assigned
+                  <Text style={styles.tableCell}>
+                    {users.length > 0 
+                      ? users.sort(sortUsers).map(user => formatName(user)).join(", ")
+                      : "No members available"
+                    }
                   </Text>
                 </View>
               );
             })}
             
             {/* Display verse at the bottom of the table if provided */}
-            {verse && (
-              <View style={{ marginTop: 20, padding: 10 }}>
-                <PDFVerse verse={verse} />
-              </View>
-            )}
+            {verse && <PDFVerse verse={verse} />}
           </View>
         )}
       </Page>
