@@ -666,8 +666,28 @@ export class DatabaseStorage implements IStorage {
   }
   
   async clearRosterAssignmentsForDate(date: Date): Promise<void> {
-    const dateStr = this.formatDateToString(date);
-    await db.delete(rosterAssignments).where(eq(rosterAssignments.serviceDate, dateStr));
+    try {
+      const dateStr = this.formatDateToString(date);
+      console.log(`Clearing roster assignments for date string: ${dateStr}`);
+      
+      // Get assignments that will be cleared for logging
+      const existingAssignments = await db
+        .select()
+        .from(rosterAssignments)
+        .where(eq(rosterAssignments.serviceDate, dateStr));
+      
+      console.log(`Found ${existingAssignments.length} assignments to clear for ${dateStr}`);
+      
+      // Delete the assignments
+      const result = await db
+        .delete(rosterAssignments)
+        .where(eq(rosterAssignments.serviceDate, dateStr));
+      
+      console.log(`Deletion completed successfully`);
+    } catch (error) {
+      console.error(`Error in clearRosterAssignmentsForDate:`, error);
+      throw error; // Re-throw to be handled by the caller
+    }
   }
   
   // Roster Builder Helper Methods

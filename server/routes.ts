@@ -870,9 +870,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const month = parseInt(req.params.month) - 1; // JS months are 0-indexed
       const day = parseInt(req.params.day);
       
+      console.log(`Clearing assignments for date: ${year}-${month+1}-${day}`);
       const date = new Date(year, month, day);
+      console.log(`Parsed date: ${date.toISOString()}`);
+      
       await storage.clearRosterAssignmentsForDate(date);
-      res.sendStatus(200);
+      console.log("Successfully cleared assignments");
+      
+      res.status(200).json({ success: true });
     } catch (err) {
       console.error("Error clearing roster assignments for date:", err);
       res.status(500).json({ message: "Failed to clear roster assignments" });

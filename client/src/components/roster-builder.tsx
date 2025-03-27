@@ -120,22 +120,30 @@ export function RosterBuilder() {
       const month = date.getMonth() + 1; // Adjusting for 0-indexed months
       const day = date.getDate();
       
+      console.log(`Clearing assignments for date: ${year}-${month}-${day}`);
+      
       const response = await fetch(`/api/admin/roster-assignments/date/${year}/${month}/${day}`, {
         method: 'DELETE',
         credentials: 'include'
       });
       
-      if (!response.ok) {
-        try {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to clear assignments');
-        } catch (parseError) {
-          throw new Error('Failed to clear assignments');
-        }
+      // Try to parse the response regardless of status
+      let responseData;
+      try {
+        responseData = await response.json();
+        console.log("Response data:", responseData);
+      } catch (parseError) {
+        console.log("No JSON response body");
       }
       
-      // Server returns 200 with no content, so we don't try to parse JSON
-      return true;
+      // Check if response was successful
+      if (!response.ok) {
+        const errorMessage = responseData?.message || 'Failed to clear assignments';
+        console.error("Error in response:", errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      return responseData || true;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ 
