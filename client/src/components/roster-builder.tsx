@@ -4,7 +4,20 @@ import { useToast } from '@/hooks/use-toast';
 import { format, addMonths, subMonths } from 'date-fns';
 import { User, ServiceRole } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
-import { ChevronLeft, ChevronRight, Trash2, Save, AlertTriangle, Info } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Trash2, Save, AlertTriangle, Info, AlertCircle } from 'lucide-react';
+
+// Define role maximum limits
+const ROLE_LIMITS: Record<string, number> = {
+  'Worship Leader': 3,
+  'Singer': 4,
+  'Keyboardist': 2,
+  'Bassist': 1,
+  'Guitarist': 1,
+  'Drummer': 1,
+  'Usher': 2,
+  'OBS & Sound': 2,
+  'Multimedia': 2,
+};
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -197,8 +210,62 @@ export function RosterBuilder() {
     setSelectedSunday(null);
   };
 
+  // Helper function to check if role has reached its maximum limit
+  const isRoleFull = (roleId: number, roleName: string) => {
+    if (!selectedSunday) return false;
+    
+    // Get the maximum allowed for this role (default to 1 if not specified)
+    const maxAllowed = ROLE_LIMITS[roleName] || 1;
+    
+    // Count how many of this role are already assigned (existing + pending assignments)
+    let assignedCount = 0;
+    
+    // Count from database assignments
+    selectedSunday.assignments.forEach(assignment => {
+      if (assignment.roleId === roleId) {
+        assignedCount++;
+      }
+    });
+    
+    // Count from current selected assignments (excluding the assignment being replaced)
+    Object.entries(selectedAssignments).forEach(([currentRoleId, _userId]) => {
+      // Only count if it's the same role and doesn't already exist in database assignments
+      if (
+        parseInt(currentRoleId) === roleId && 
+        !selectedSunday.assignments.some(a => a.roleId === roleId && a.userId === _userId)
+      ) {
+        assignedCount++;
+      }
+    });
+    
+    return assignedCount >= maxAllowed;
+  };
+
   // Handle role assignment
-  const handleAssignRole = (roleId: number, userId: number) => {
+  const handleAssignRole = (roleId: number, userId: number, roleName: string) => {
+    // If this person is already assigned to this role, unassign them
+    if (selectedAssignments[roleId] === userId) {
+      setSelectedAssignments(prev => {
+        const updated = { ...prev };
+        delete updated[roleId];
+        return updated;
+      });
+      return;
+    }
+    
+    // Check if role has reached max limit and this would be a new assignment
+    if (isRoleFull(roleId, roleName) && !selectedAssignments[roleId]) {
+      const limit = ROLE_LIMITS[roleName] || 1;
+      toast({
+        title: `Maximum ${roleName}s Reached`,
+        description: `You can only assign up to ${limit} people as ${roleName}. 
+                      Please remove an existing ${roleName} before adding a new one.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Proceed with assignment
     setSelectedAssignments(prev => ({
       ...prev,
       [roleId]: userId
@@ -493,7 +560,31 @@ export function RosterBuilder() {
                       <div key={role.id} className="border rounded-md p-4">
                         <div className="flex justify-between items-center mb-2">
                           <div>
-                            <h4 className="font-medium">{role.name}</h4>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-medium">{role.name}</h4>
+                              {/* Display role limit info */}
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge 
+                                      variant={isRoleFull(role.id, role.name) ? "destructive" : "outline"} 
+                                      className="text-xs py-0 h-5"
+                                    >
+                                      {isRoleFull(role.id, role.name) ? (
+                                        <>Max {ROLE_LIMITS[role.name] || 1}</>
+                                      ) : (
+                                        <>Limit: {ROLE_LIMITS[role.name] || 1}</>
+                                      )}
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="text-xs">
+                                      Maximum {ROLE_LIMITS[role.name] || 1} {role.name}{ROLE_LIMITS[role.name] > 1 ? "s" : ""} allowed per service
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
                             {role.description && (
                               <p className="text-xs text-muted-foreground">{role.description}</p>
                             )}
@@ -517,6 +608,16 @@ export function RosterBuilder() {
                           </TooltipProvider>
                         </div>
                         
+                        {/* Show role limit indicator */}
+                        {isRoleFull(role.id, role.name) && (
+                          <Alert className="mt-2 mb-2" variant="destructive">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertDescription className="text-xs">
+                              Maximum of {ROLE_LIMITS[role.name] || 1} {role.name}{ROLE_LIMITS[role.name] > 1 ? "s" : ""} reached
+                            </AlertDescription>
+                          </Alert>
+                        )}
+                        
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mt-3">
                           {selectedSunday.availablePeople.map(person => (
                             <div
@@ -525,11 +626,15 @@ export function RosterBuilder() {
                                 border rounded-md p-2 text-sm cursor-pointer
                                 ${selectedAssignments[role.id] === person.id ? 'bg-primary/20 border-primary' : 'hover:bg-muted/50'}
                                 ${selectedSunday.assignments.some(a => a.userId === person.id && a.roleId !== role.id) ? 'opacity-50' : ''}
+                                ${isRoleFull(role.id, role.name) && !selectedAssignments[role.id] ? 'opacity-50 cursor-not-allowed' : ''}
                               `}
-                              onClick={() => handleAssignRole(role.id, person.id)}
+                              onClick={() => handleAssignRole(role.id, person.id, role.name)}
                             >
                               <p className="font-medium truncate">{person.formattedName}</p>
                               <p className="text-xs text-muted-foreground truncate">{person.initials}</p>
+                              {selectedSunday.assignments.some(a => a.roleId === role.id && a.userId === person.id) && (
+                                <Badge variant="outline" className="mt-1">Assigned</Badge>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -549,9 +654,12 @@ export function RosterBuilder() {
                   </Alert>
                 )}
               </CardContent>
-              <CardFooter>
+              <CardFooter className="flex-col items-start space-y-2">
                 <p className="text-xs text-muted-foreground">
                   Note: People already assigned to other roles are shown with reduced opacity.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Role limits: Worship Leader (3), Singer (4), Keyboardist (2), Bassist/Guitarist/Drummer (1), Usher/OBS & Sound/Multimedia (2)
                 </p>
               </CardFooter>
             </Card>
