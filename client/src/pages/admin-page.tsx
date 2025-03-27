@@ -81,24 +81,24 @@ function SpecialDaysList({
   // Use state to track selected view mode
   const [viewMode, setViewMode] = useState<'all' | 'month'>('all');
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
-  
+
   // Get all special days instead of just one month
   const { data: allSpecialDays, isLoading, isError } = useQuery<SpecialDay[]>({
     queryKey: ["/api/special-days"],
     queryFn: async () => {
       try {
         console.log("Fetching all special days");
-        
+
         const response = await fetch(`/api/special-days`, {
           credentials: 'include'
         });
-        
+
         if (!response.ok) {
           const errorData = await response.text();
           console.error(`Error response: ${response.status} ${response.statusText}`, errorData);
           throw new Error(`Error fetching special days: ${response.status}`);
         }
-        
+
         const data = await response.json();
         console.log(`Successfully fetched ${data?.length || 0} special days`);
         return data || [];
@@ -119,11 +119,11 @@ function SpecialDaysList({
     if (!allSpecialDays || viewMode === 'all') {
       return allSpecialDays;
     }
-    
+
     // Filter by selected month
     const year = selectedMonth.getFullYear();
     const month = selectedMonth.getMonth();
-    
+
     return allSpecialDays.filter(day => {
       const dayDate = new Date(day.date);
       return dayDate.getFullYear() === year && dayDate.getMonth() === month;
@@ -161,7 +161,7 @@ function SpecialDaysList({
           By Month
         </Button>
       </div>
-      
+
       {viewMode === 'month' && (
         <div className="flex items-center gap-2">
           <Button
@@ -175,11 +175,11 @@ function SpecialDaysList({
           >
             Previous
           </Button>
-          
+
           <span className="text-sm font-medium">
             {format(selectedMonth, "MMMM yyyy")}
           </span>
-          
+
           <Button
             variant="outline"
             size="sm"
@@ -282,7 +282,7 @@ function SpecialDayDialog({
   const { toast } = useToast();
   const isEditing = !!specialDay;
   const [isPending, setIsPending] = useState(false);
-  
+
   const defaultValues = isEditing 
     ? {
         date: new Date(specialDay.date),
@@ -296,23 +296,23 @@ function SpecialDayDialog({
         description: '',
         color: '#FFD700' // Default gold color
       };
-  
+
   const form = useForm<SpecialDayFormValues>({
     resolver: zodResolver(specialDaySchema),
     defaultValues
   });
-  
+
   // Reset the form when the dialog opens/closes
   useEffect(() => {
     if (isOpen) {
       form.reset(defaultValues);
     }
   }, [isOpen, form]);
-  
+
   const handleSubmit = async (data: SpecialDayFormValues) => {
     try {
       setIsPending(true);
-      
+
       // Format the date for API submission and handle timezone offset
       // Get the date parts and create a date string in YYYY-MM-DD format
       // that doesn't get affected by timezone conversion
@@ -320,14 +320,14 @@ function SpecialDayDialog({
       const month = String(data.date.getMonth() + 1).padStart(2, '0');
       const day = String(data.date.getDate()).padStart(2, '0');
       const dateString = `${year}-${month}-${day}`;
-      
+
       const formattedData = {
         ...data,
         date: dateString
       };
-      
+
       console.log("Submitting data:", formattedData);
-      
+
       if (isEditing && specialDay) {
         // Update an existing special day
         const response = await fetch(`/api/admin/special-days/${specialDay.id}`, {
@@ -337,12 +337,12 @@ function SpecialDayDialog({
           },
           body: JSON.stringify(formattedData),
         });
-        
+
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.message || 'Failed to update special day');
         }
-        
+
         toast({
           title: "Success",
           description: "Special day updated successfully",
@@ -356,25 +356,25 @@ function SpecialDayDialog({
           },
           body: JSON.stringify(formattedData),
         });
-        
+
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.message || 'Failed to create special day');
         }
-        
+
         toast({
           title: "Success",
           description: "Special day created successfully",
         });
       }
-      
+
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["/api/special-days"] });
       queryClient.invalidateQueries({ queryKey: ["/api/special-days/month"] });
-      
+
       // Close the dialog and reset form
       onClose();
-      
+
     } catch (error) {
       console.error("Error saving special day:", error);
       toast({
@@ -386,7 +386,7 @@ function SpecialDayDialog({
       setIsPending(false);
     }
   };
-  
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-md">
@@ -396,7 +396,7 @@ function SpecialDayDialog({
             Mark a Sunday as special with a name, description, and custom color.
           </DialogDescription>
         </DialogHeader>
-        
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <FormField
@@ -434,7 +434,7 @@ function SpecialDayDialog({
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="name"
@@ -448,7 +448,7 @@ function SpecialDayDialog({
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="description"
@@ -462,7 +462,7 @@ function SpecialDayDialog({
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="color"
@@ -482,7 +482,7 @@ function SpecialDayDialog({
                 </FormItem>
               )}
             />
-            
+
             <DialogFooter>
               <Button type="submit" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting ? (
@@ -530,14 +530,14 @@ function InitialsDialog({
 }) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const form = useForm<InitialsFormValues>({
     resolver: zodResolver(initialsFormSchema),
     defaultValues: {
       initials: member?.initials || '',
     },
   });
-  
+
   // Update form values when member changes
   useEffect(() => {
     if (isOpen && member) {
@@ -546,16 +546,16 @@ function InitialsDialog({
       });
     }
   }, [form, isOpen, member]);
-  
+
   const handleSubmit = async (data: InitialsFormValues) => {
     if (!member) return;
-    
+
     try {
       setIsSubmitting(true);
-      
+
       // Call the parent component's save function
       onSave(member.id, data.initials);
-      
+
     } catch (error) {
       console.error("Error updating initials:", error);
       toast({
@@ -567,7 +567,7 @@ function InitialsDialog({
       setIsSubmitting(false);
     }
   };
-  
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-md">
@@ -578,7 +578,7 @@ function InitialsDialog({
             Initials must be unique across all members.
           </DialogDescription>
         </DialogHeader>
-        
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <FormField
@@ -602,7 +602,7 @@ function InitialsDialog({
                 </FormItem>
               )}
             />
-            
+
             <DialogFooter>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? (
@@ -632,7 +632,7 @@ function NameDialog({
 }) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const form = useForm<NameFormValues>({
     resolver: zodResolver(nameFormSchema),
     defaultValues: {
@@ -640,7 +640,7 @@ function NameDialog({
       lastName: member?.lastName || '',
     },
   });
-  
+
   // Update form values when member changes
   useEffect(() => {
     if (isOpen && member) {
@@ -650,16 +650,16 @@ function NameDialog({
       });
     }
   }, [form, isOpen, member]);
-  
+
   const handleSubmit = async (data: UpdateMemberName) => {
     if (!member) return;
-    
+
     try {
       setIsSubmitting(true);
-      
+
       // Call the parent component's save function
       onSave(member.id, data.firstName, data.lastName);
-      
+
     } catch (error) {
       console.error("Error updating name:", error);
       toast({
@@ -671,7 +671,7 @@ function NameDialog({
       setIsSubmitting(false);
     }
   };
-  
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-md">
@@ -681,7 +681,7 @@ function NameDialog({
             Update the name for {member?.firstName} {member?.lastName}.
           </DialogDescription>
         </DialogHeader>
-        
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <FormField
@@ -701,7 +701,7 @@ function NameDialog({
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="lastName"
@@ -719,7 +719,7 @@ function NameDialog({
                 </FormItem>
               )}
             />
-            
+
             <DialogFooter>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? (
@@ -755,11 +755,12 @@ export default function AdminPage() {
   const [specialDayToEdit, setSpecialDayToEdit] = useState<SpecialDay | null>(null);
   const [specialDayToDelete, setSpecialDayToDelete] = useState<SpecialDay | null>(null);
   const [showSpecialDayDialog, setShowSpecialDayDialog] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/members"],
   });
-  
+
   // Sort users alphabetically with ID as tiebreaker to maintain position
   const sortedUsers = useMemo(() => {
     if (!users) return [];
@@ -773,11 +774,11 @@ export default function AdminPage() {
   const { data: settings } = useQuery<{ deadlineDay: number, nameFormat: string }>({
     queryKey: ["/api/admin/settings"],
   });
-  
+
   const { data: availability } = useQuery({
     queryKey: ["/api/availability"],
   });
-  
+
   // Special days queries and mutations
   const createSpecialDayMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -803,7 +804,7 @@ export default function AdminPage() {
       });
     },
   });
-  
+
   const updateSpecialDayMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number, data: any }) => {
       console.log(`Updating special day ${id} with data:`, data);
@@ -828,7 +829,7 @@ export default function AdminPage() {
       });
     },
   });
-  
+
   const deleteSpecialDayMutation = useMutation({
     mutationFn: async (id: number) => {
       await apiRequest("DELETE", `/api/admin/special-days/${id}`);
@@ -854,13 +855,13 @@ export default function AdminPage() {
       setDeadlineDay(settings.deadlineDay);
     }
   }, [settings]);
-  
+
   // Process availability data to determine which months have data
   useEffect(() => {
     if (availability && Array.isArray(availability)) {
       // Get months with available members
       const months = new Set<string>();
-      
+
       // Only include records where someone is available
       availability
         .filter(record => record.isAvailable)
@@ -869,24 +870,24 @@ export default function AdminPage() {
           const monthYear = format(date, 'yyyy-MM'); // Format as YYYY-MM for uniqueness
           months.add(monthYear);
         });
-      
+
       // Convert to Date objects (first day of each month)
       const monthDates = Array.from(months).map(monthStr => {
         const [year, month] = monthStr.split('-').map(Number);
         return new Date(year, month - 1, 1); // Month is 0-indexed in JS Date
       });
-      
+
       // Sort by date
       monthDates.sort((a, b) => a.getTime() - b.getTime());
-      
+
       setAvailableMonths(monthDates);
-      
+
       // If there are available months and current selection isn't in the list,
       // select the most recent month
       if (monthDates.length > 0) {
         const currentMonthYear = format(selectedMonth, 'yyyy-MM');
         const hasCurrentMonth = Array.from(months).includes(currentMonthYear);
-        
+
         if (!hasCurrentMonth) {
           // Get the most recent month (last in the sorted array)
           setSelectedMonth(monthDates[monthDates.length - 1]);
@@ -960,7 +961,7 @@ export default function AdminPage() {
       });
     },
   });
-  
+
   // Initials update mutation
   const updateInitialsMutation = useMutation({
     mutationFn: async ({ userId, initials }: { userId: number, initials: string }) => {
@@ -985,7 +986,7 @@ export default function AdminPage() {
       });
     },
   });
-  
+
   // Name update mutation
   const updateNameMutation = useMutation({
     mutationFn: async ({ userId, firstName, lastName }: { userId: number, firstName: string, lastName: string }) => {
@@ -1010,24 +1011,24 @@ export default function AdminPage() {
       });
     },
   });
-  
+
   // Handle edit initials
   const handleEditInitials = (member: User) => {
     setMemberToEditInitials(member);
     setInitialsDialogOpen(true);
   };
-  
+
   // Handle save initials
   const handleSaveInitials = (userId: number, initials: string) => {
     updateInitialsMutation.mutate({ userId, initials });
   };
-  
+
   // Handle edit name
   const handleEditName = (member: User) => {
     setMemberToEditName(member);
     setNameDialogOpen(true);
   };
-  
+
   // Handle save name
   const handleSaveName = (userId: number, firstName: string, lastName: string) => {
     updateNameMutation.mutate({ userId, firstName, lastName });
@@ -1119,7 +1120,7 @@ export default function AdminPage() {
       });
     },
   });
-  
+
   const testEmailConfigMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("GET", "/api/admin/test-email");
@@ -1171,6 +1172,33 @@ export default function AdminPage() {
     }
   };
 
+  // Add query for roster data
+  const rosterQuery = useQuery({
+    queryKey: ["roster"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/roster");
+      if (!response.ok) throw new Error("Failed to fetch roster");
+      return response.json();
+    }
+  });
+
+  const assignedUsersForDate = useMemo(() => {
+    if (!rosterQuery.data) return [];
+    const dateStr = format(selectedDate, "yyyy-MM-dd");
+    return users?.filter(user => 
+      rosterQuery.data.some((assignment: any) => 
+        assignment.userId === user.id && 
+        format(new Date(assignment.serviceDate), "yyyy-MM-dd") === dateStr
+      )
+    ) || [];
+  }, [rosterQuery.data, selectedDate, users]);
+
+  const availableUsersForDate = useMemo(() => {
+    if (!users) return [];
+    const assignedIds = new Set(assignedUsersForDate.map(u => u.id));
+    return users.filter(user => !assignedIds.has(user.id));
+  }, [users, assignedUsersForDate]);
+
 
   if (!user?.isAdmin) {
     return (
@@ -1202,7 +1230,7 @@ export default function AdminPage() {
       <NavBar />
       <main className="flex-1 container mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold mb-6">Admin Panel</h1>
-        
+
         <Tabs defaultValue="settings" className="w-full mb-8">
           <TabsList className="w-full mb-6">
             <TabsTrigger value="settings" className="flex-1">
@@ -1213,8 +1241,12 @@ export default function AdminPage() {
               <Users className="h-4 w-4 mr-2" />
               Member Management
             </TabsTrigger>
+            <TabsTrigger value="roster" className="flex-1">
+              <Users className="h-4 w-4 mr-2" />
+              Roster Management
+            </TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="settings" className="space-y-6">
             {/* System Settings Card */}
             <Card>
@@ -1293,14 +1325,14 @@ export default function AdminPage() {
                     }}
                     onDelete={(specialDay) => setSpecialDayToDelete(specialDay)}
                   />
-                  
+
                   {/* Special Day Dialog */}
                   <SpecialDayDialog 
                     isOpen={showSpecialDayDialog}
                     onClose={() => setShowSpecialDayDialog(false)}
                     specialDay={specialDayToEdit}
                   />
-                  
+
                   {/* Delete Confirmation */}
                   <AlertDialog open={!!specialDayToDelete} onOpenChange={() => setSpecialDayToDelete(null)}>
                     <AlertDialogContent>
@@ -1319,20 +1351,20 @@ export default function AdminPage() {
                                 title: "Deleting...",
                                 description: "Removing special day"
                               });
-                              
+
                               // Direct API call to ensure we have access to proper error handling
                               const response = await fetch(`/api/admin/special-days/${specialDayToDelete.id}`, {
                                 method: 'DELETE',
                                 credentials: 'include'
                               });
-                              
+
                               if (!response.ok) {
                                 throw new Error(`Failed to delete special day: ${response.status}`);
                               }
-                              
+
                               // Invalidate the special days query to refresh the data
                               queryClient.invalidateQueries({ queryKey: ["/api/special-days"] });
-                              
+
                               toast({
                                 title: "Success",
                                 description: "Special day deleted successfully"
@@ -1386,7 +1418,7 @@ export default function AdminPage() {
                       Send Roster
                     </Button>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Month</label>
@@ -1427,7 +1459,7 @@ export default function AdminPage() {
                         </PopoverContent>
                       </Popover>
                     </div>
-                    
+
                     <div className="space-y-2">
                       <label className="text-sm font-medium">View Style</label>
                       <Select
@@ -1444,7 +1476,7 @@ export default function AdminPage() {
                       </Select>
                     </div>
                   </div>
-                  
+
                   <p className="text-sm text-muted-foreground mt-4">
                     The roster for {format(selectedMonth, "MMMM yyyy")} will be sent as a PDF attachment.
                   </p>
@@ -1452,7 +1484,7 @@ export default function AdminPage() {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           <TabsContent value="members" className="space-y-6">
             {/* Add New Member Card */}
             <Card>
@@ -1552,6 +1584,54 @@ export default function AdminPage() {
               </CardContent>
             </Card>
           </TabsContent>
+          <TabsContent value="roster" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Roster Management</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between mb-4">
+                  <label className="text-sm font-medium">Select Date</label>
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    initialFocus
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">Assigned Members</h3>
+                    {assignedUsersForDate.length > 0 ? (
+                      <ul>
+                        {assignedUsersForDate.map((user) => (
+                          <li key={user.id} className="mb-1">
+                            {user.firstName} {user.lastName}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p>No members assigned for this date</p>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">Available Members</h3>
+                    {availableUsersForDate.length > 0 ? (
+                      <ul>
+                        {availableUsersForDate.map((user) => (
+                          <li key={user.id} className="mb-1">
+                            {user.firstName} {user.lastName}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p>No members available for this date</p>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </main>
 
@@ -1574,7 +1654,7 @@ export default function AdminPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      
+
       {/* Initials Edit Dialog */}
       <InitialsDialog 
         isOpen={initialsDialogOpen}
@@ -1582,7 +1662,7 @@ export default function AdminPage() {
         member={memberToEditInitials}
         onSave={handleSaveInitials}
       />
-      
+
       {/* Name Edit Dialog */}
       <NameDialog 
         isOpen={nameDialogOpen}
