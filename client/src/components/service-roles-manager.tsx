@@ -209,10 +209,21 @@ export function ServiceRolesManager() {
   // Reorder roles mutation
   const reorderRolesMutation = useMutation({
     mutationFn: async (roleIds: number[]) => {
-      return apiRequest('/api/admin/service-roles/reorder', {
+      const response = await fetch('/api/admin/service-roles/reorder', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ roleIds }),
+        credentials: 'include'
       });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to reorder service roles');
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/service-roles'] });
@@ -347,7 +358,7 @@ export function ServiceRolesManager() {
                     ref={provided.innerRef}
                     className="space-y-2"
                   >
-                    {serviceRoles.map((role, index) => (
+                    {serviceRoles.map((role: ServiceRole, index: number) => (
                       <Draggable key={role.id} draggableId={role.id.toString()} index={index}>
                         {(provided) => (
                           <div

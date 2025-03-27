@@ -33,6 +33,18 @@ export class DatabaseStorage implements IStorage {
     // Extract first letter of first name and first letter of last name
     return (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
   }
+  
+  // Helper function to safely format dates
+  formatDateToString(date: unknown): string {
+    if (date instanceof Date) {
+      return date.toISOString().split('T')[0];
+    } else if (typeof date === 'string') {
+      const parsedDate = new Date(date);
+      return parsedDate.toISOString().split('T')[0];
+    } else {
+      throw new Error("Invalid date format");
+    }
+  }
 
   // Check if initials already exist in the database
   async checkInitialsExist(initials: string): Promise<boolean> {
@@ -563,8 +575,8 @@ export class DatabaseStorage implements IStorage {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0); // Last day of the month
     
-    const startDateStr = startDate.toISOString().split('T')[0];
-    const endDateStr = endDate.toISOString().split('T')[0];
+    const startDateStr = this.formatDateToString(startDate);
+    const endDateStr = this.formatDateToString(endDate);
     
     // Select assignments within the date range
     return db
@@ -594,17 +606,8 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createRosterAssignment(assignment: InsertRosterAssignment): Promise<RosterAssignment> {
-    // Format date
-    let dateStr: string;
-    
-    if (typeof assignment.serviceDate === 'object' && assignment.serviceDate && 'toISOString' in assignment.serviceDate) {
-      dateStr = assignment.serviceDate.toISOString().split('T')[0];
-    } else if (typeof assignment.serviceDate === 'string') {
-      const parsedDate = new Date(assignment.serviceDate);
-      dateStr = parsedDate.toISOString().split('T')[0];
-    } else {
-      throw new Error("Invalid date format");
-    }
+    // Format date using our helper function
+    const dateStr = this.formatDateToString(assignment.serviceDate);
     
     // Check if user is already assigned to another role for this date
     const existingAssignments = await db
@@ -640,12 +643,8 @@ export class DatabaseStorage implements IStorage {
     const updateData: Partial<InsertRosterAssignment> = { ...assignment };
     
     if (updateData.serviceDate) {
-      if (typeof updateData.serviceDate === 'object' && updateData.serviceDate && 'toISOString' in updateData.serviceDate) {
-        updateData.serviceDate = updateData.serviceDate.toISOString().split('T')[0];
-      } else if (typeof updateData.serviceDate === 'string') {
-        const parsedDate = new Date(updateData.serviceDate);
-        updateData.serviceDate = parsedDate.toISOString().split('T')[0];
-      }
+      // Use helper function to format the date
+      updateData.serviceDate = this.formatDateToString(updateData.serviceDate);
     }
     
     // Add updatedAt timestamp
@@ -667,7 +666,7 @@ export class DatabaseStorage implements IStorage {
   }
   
   async clearRosterAssignmentsForDate(date: Date): Promise<void> {
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = this.formatDateToString(date);
     await db.delete(rosterAssignments).where(eq(rosterAssignments.serviceDate, dateStr));
   }
   
@@ -699,11 +698,11 @@ export class DatabaseStorage implements IStorage {
       const userMap = new Map(allUsers.map(user => [user.id, user]));
       
       // Convert dates to strings for easier comparison
-      const sundayStrings = sundays.map(date => date.toISOString().split('T')[0]);
+      const sundayStrings = sundays.map(date => this.formatDateToString(date));
       
       // Filter availability records for the month's Sundays where isAvailable is true
       const sundayAvailability = allAvailability.filter(record => {
-        const recordDateStr = new Date(record.serviceDate).toISOString().split('T')[0];
+        const recordDateStr = this.formatDateToString(record.serviceDate);
         return sundayStrings.includes(recordDateStr) && record.isAvailable;
       });
       
@@ -711,7 +710,7 @@ export class DatabaseStorage implements IStorage {
       const specialDaysInMonth = await this.getSpecialDaysByMonth(year, month);
       const specialDayMap = new Map(
         specialDaysInMonth.map(day => [
-          new Date(day.date).toISOString().split('T')[0], 
+          this.formatDateToString(day.date), 
           day
         ])
       );
@@ -722,7 +721,7 @@ export class DatabaseStorage implements IStorage {
       // Group assignments by date
       const assignmentsByDate: Record<string, RosterAssignment[]> = {};
       rosterAssignments.forEach(assignment => {
-        const dateStr = new Date(assignment.serviceDate).toISOString().split('T')[0];
+        const dateStr = this.formatDateToString(assignment.serviceDate);
         if (!assignmentsByDate[dateStr]) {
           assignmentsByDate[dateStr] = [];
         }
@@ -734,12 +733,12 @@ export class DatabaseStorage implements IStorage {
       
       // Organize data by Sunday
       return sundays.map(sunday => {
-        const dateStr = sunday.toISOString().split('T')[0];
+        const dateStr = this.formatDateToString(sunday);
         
         // Find available people for this Sunday
         const availablePeople = sundayAvailability
           .filter(record => {
-            const recordDateStr = new Date(record.serviceDate).toISOString().split('T')[0];
+            const recordDateStr = this.formatDateToString(record.serviceDate);
             return recordDateStr === dateStr;
           })
           .map(record => {
