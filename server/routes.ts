@@ -9,7 +9,8 @@ import {
   User, 
   insertVerseSchema, 
   insertSpecialDaySchema,
-  updateProfileSchema
+  updateProfileSchema,
+  updateMemberNameSchema
 } from "@shared/schema";
 import nodemailer from "nodemailer";
 import { renderToBuffer } from "@react-pdf/renderer";
@@ -156,11 +157,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const userId = parseInt(req.params.id);
-      const { firstName, lastName } = req.body;
       
-      if (!firstName || typeof firstName !== 'string' || !lastName || typeof lastName !== 'string') {
-        return res.status(400).json({ message: "Valid first and last name are required" });
+      // Validate the request using our schema
+      const parseResult = updateMemberNameSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ 
+          message: "Invalid name data", 
+          errors: parseResult.error.errors 
+        });
       }
+      
+      const { firstName, lastName } = parseResult.data;
       
       // Update the user profile with new name
       const updatedUser = await storage.updateUserProfile(userId, {
@@ -170,6 +177,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(updatedUser);
     } catch (err) {
+      console.error("Error updating member name:", err);
       if (err instanceof Error) {
         res.status(400).json({ message: err.message });
       } else {

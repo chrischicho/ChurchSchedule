@@ -504,6 +504,14 @@ const initialsFormSchema = z.object({
 
 type InitialsFormValues = z.infer<typeof initialsFormSchema>;
 
+// Name form schema
+const nameFormSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+});
+
+type NameFormValues = z.infer<typeof nameFormSchema>;
+
 // Initials Dialog component
 function InitialsDialog({
   isOpen,
@@ -1492,6 +1500,14 @@ export default function AdminPage() {
                             <Button
                               variant="outline"
                               size="sm"
+                              title="Edit Name"
+                              onClick={() => handleEditName(member)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
                               className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
                               onClick={() => handleDeleteMember(member)}
                               disabled={deleteMemberMutation.isPending || member.id === user?.id}
@@ -1536,6 +1552,13 @@ export default function AdminPage() {
         onClose={() => setInitialsDialogOpen(false)}
         member={memberToEditInitials}
         onSave={handleSaveInitials}
+      />
+      
+      <NameDialog 
+        isOpen={nameDialogOpen}
+        onClose={() => setNameDialogOpen(false)}
+        member={memberToEditName}
+        onSave={handleSaveName}
       />
     </div>
   );
