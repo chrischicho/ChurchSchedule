@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -55,7 +56,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Trash2, Mail, Settings, Calendar as CalendarIcon, Plus, Edit, Star, UserCog } from "lucide-react";
+import { Trash2, Mail, Settings, Calendar as CalendarIcon, Plus, Edit, Star, UserCog, Users } from "lucide-react";
 import { ChurchLoader } from "@/components/church-loader";
 import { LoaderOverlay } from "@/components/loader-overlay";
 
@@ -499,7 +500,10 @@ function SpecialDayDialog({
 
 // Initials form schema
 const initialsFormSchema = z.object({
-  initials: z.string().min(1, "Initials are required").max(5, "Initials should be at most 5 characters"),
+  initials: z.string()
+    .min(1, "Initials must contain at least 1 character")
+    .max(5, "Initials cannot exceed 5 characters")
+    .regex(/^[A-Za-z]{1,5}$/, "Initials must only contain letters"),
 });
 
 type InitialsFormValues = z.infer<typeof initialsFormSchema>;
@@ -512,7 +516,7 @@ const nameFormSchema = z.object({
 
 type NameFormValues = z.infer<typeof nameFormSchema>;
 
-// Initials Dialog component
+// Dialog for editing initials
 function InitialsDialog({
   isOpen,
   onClose,
@@ -525,31 +529,33 @@ function InitialsDialog({
   onSave: (userId: number, initials: string) => void;
 }) {
   const { toast } = useToast();
-  const [isPending, setIsPending] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const form = useForm<InitialsFormValues>({
     resolver: zodResolver(initialsFormSchema),
     defaultValues: {
-      initials: member?.initials || ''
-    }
+      initials: member?.initials || '',
+    },
   });
   
-  // Reset the form when the dialog opens/closes or member changes
+  // Update form values when member changes
   useEffect(() => {
     if (isOpen && member) {
       form.reset({
-        initials: member.initials || ''
+        initials: member.initials || '',
       });
     }
-  }, [isOpen, member, form]);
+  }, [form, isOpen, member]);
   
   const handleSubmit = async (data: InitialsFormValues) => {
     if (!member) return;
     
     try {
-      setIsPending(true);
+      setIsSubmitting(true);
+      
+      // Call the parent component's save function
       onSave(member.id, data.initials);
-      onClose();
+      
     } catch (error) {
       console.error("Error updating initials:", error);
       toast({
@@ -558,7 +564,7 @@ function InitialsDialog({
         variant: "destructive"
       });
     } finally {
-      setIsPending(false);
+      setIsSubmitting(false);
     }
   };
   
@@ -569,7 +575,7 @@ function InitialsDialog({
           <DialogTitle>Edit Member Initials</DialogTitle>
           <DialogDescription>
             Update the initials for {member?.firstName} {member?.lastName}.
-            These initials will be used in the roster and availability views.
+            Initials must be unique across all members.
           </DialogDescription>
         </DialogHeader>
         
@@ -582,10 +588,15 @@ function InitialsDialog({
                 <FormItem>
                   <FormLabel>Initials</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., JD, ABC" {...field} />
+                    <Input 
+                      placeholder="e.g., JS" 
+                      {...field} 
+                      autoComplete="off"
+                      maxLength={5}
+                    />
                   </FormControl>
                   <FormDescription>
-                    Initials should be 1-5 characters long.
+                    These will appear on the roster to identify the member.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -593,11 +604,11 @@ function InitialsDialog({
             />
             
             <DialogFooter>
-              <Button type="submit" disabled={isPending}>
-                {isPending ? (
-                  <ChurchLoader type="users" size="xs" className="mr-2" />
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <ChurchLoader type="church" size="xs" className="mr-2" />
                 ) : null}
-                Save Initials
+                Save Changes
               </Button>
             </DialogFooter>
           </form>
@@ -607,7 +618,7 @@ function InitialsDialog({
   );
 }
 
-// Name editing dialog component
+// Dialog for editing name
 function NameDialog({
   isOpen,
   onClose,
@@ -620,33 +631,35 @@ function NameDialog({
   onSave: (userId: number, firstName: string, lastName: string) => void;
 }) {
   const { toast } = useToast();
-  const [isPending, setIsPending] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const form = useForm<UpdateMemberName>({
-    resolver: zodResolver(updateMemberNameSchema),
+  const form = useForm<NameFormValues>({
+    resolver: zodResolver(nameFormSchema),
     defaultValues: {
       firstName: member?.firstName || '',
-      lastName: member?.lastName || ''
-    }
+      lastName: member?.lastName || '',
+    },
   });
   
-  // Reset the form when the dialog opens/closes or member changes
+  // Update form values when member changes
   useEffect(() => {
     if (isOpen && member) {
       form.reset({
         firstName: member.firstName,
-        lastName: member.lastName
+        lastName: member.lastName,
       });
     }
-  }, [isOpen, member, form]);
+  }, [form, isOpen, member]);
   
   const handleSubmit = async (data: UpdateMemberName) => {
     if (!member) return;
     
     try {
-      setIsPending(true);
+      setIsSubmitting(true);
+      
+      // Call the parent component's save function
       onSave(member.id, data.firstName, data.lastName);
-      onClose();
+      
     } catch (error) {
       console.error("Error updating name:", error);
       toast({
@@ -655,7 +668,7 @@ function NameDialog({
         variant: "destructive"
       });
     } finally {
-      setIsPending(false);
+      setIsSubmitting(false);
     }
   };
   
@@ -665,8 +678,7 @@ function NameDialog({
         <DialogHeader>
           <DialogTitle>Edit Member Name</DialogTitle>
           <DialogDescription>
-            Update the name for this member.
-            This will affect how the member appears in the roster and other views.
+            Update the name for {member?.firstName} {member?.lastName}.
           </DialogDescription>
         </DialogHeader>
         
@@ -679,7 +691,11 @@ function NameDialog({
                 <FormItem>
                   <FormLabel>First Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="First name" {...field} />
+                    <Input 
+                      placeholder="First Name" 
+                      {...field} 
+                      autoComplete="given-name"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -693,7 +709,11 @@ function NameDialog({
                 <FormItem>
                   <FormLabel>Last Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Last name" {...field} />
+                    <Input 
+                      placeholder="Last Name" 
+                      {...field} 
+                      autoComplete="family-name"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -701,11 +721,11 @@ function NameDialog({
             />
             
             <DialogFooter>
-              <Button type="submit" disabled={isPending}>
-                {isPending ? (
-                  <ChurchLoader type="users" size="xs" className="mr-2" />
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <ChurchLoader type="church" size="xs" className="mr-2" />
                 ) : null}
-                Save Name
+                Save Changes
               </Button>
             </DialogFooter>
           </form>
@@ -716,17 +736,17 @@ function NameDialog({
 }
 
 export default function AdminPage() {
-  const { user } = useAuth();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [nameFormat, setNameFormat] = useState("full");
-  const [memberToDelete, setMemberToDelete] = useState<User | null>(null);
-  const [memberToEditInitials, setMemberToEditInitials] = useState<User | null>(null);
+  const [nameFormat, setNameFormat] = useState<string>("full");
   const [initialsDialogOpen, setInitialsDialogOpen] = useState(false);
-  const [memberToEditName, setMemberToEditName] = useState<User | null>(null);
+  const [memberToEditInitials, setMemberToEditInitials] = useState<User | null>(null);
   const [nameDialogOpen, setNameDialogOpen] = useState(false);
-  const [deadlineDay, setDeadlineDay] = useState(20); // Default to 20th
+  const [memberToEditName, setMemberToEditName] = useState<User | null>(null);
+  const [memberToDelete, setMemberToDelete] = useState<User | null>(null);
+  const [deadlineDay, setDeadlineDay] = useState(15);
   const [emailAddress, setEmailAddress] = useState("");
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
@@ -739,6 +759,16 @@ export default function AdminPage() {
   const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/members"],
   });
+  
+  // Sort users alphabetically with ID as tiebreaker to maintain position
+  const sortedUsers = useMemo(() => {
+    if (!users) return [];
+    return [...users].sort((a, b) => {
+      const nameCompare = a.firstName.localeCompare(b.firstName) || a.lastName.localeCompare(b.lastName);
+      // If names are identical, use ID as tiebreaker for stable sorting
+      return nameCompare || a.id - b.id;
+    });
+  }, [users]);
 
   const { data: settings } = useQuery<{ deadlineDay: number, nameFormat: string }>({
     queryKey: ["/api/admin/settings"],
@@ -1171,362 +1201,361 @@ export default function AdminPage() {
     <div className="min-h-screen flex flex-col">
       <NavBar />
       <main className="flex-1 container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-8">Admin Panel</h1>
+        <h1 className="text-2xl font-bold mb-6">Admin Panel</h1>
+        
+        <Tabs defaultValue="settings" className="w-full mb-8">
+          <TabsList className="w-full mb-6">
+            <TabsTrigger value="settings" className="flex-1">
+              <Settings className="h-4 w-4 mr-2" />
+              Settings & Special Days
+            </TabsTrigger>
+            <TabsTrigger value="members" className="flex-1">
+              <Users className="h-4 w-4 mr-2" />
+              Member Management
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="settings" className="space-y-6">
+            {/* System Settings Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>System Settings</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium">Name Display Format</label>
+                    <select
+                      className="w-full mt-1 border rounded-md h-10 px-3"
+                      value={nameFormat}
+                      onChange={(e) => {
+                        setNameFormat(e.target.value);
+                        updateNameFormatMutation.mutate({ format: e.target.value });
+                      }}
+                    >
+                      <option value="full">Full Name (John Smith)</option>
+                      <option value="first">First Name Only (John)</option>
+                      <option value="last">Last Name Only (Smith)</option>
+                      <option value="initials">Initials (JS)</option>
+                    </select>
+                  </div>
 
-        <div className="grid gap-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>System Settings</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">Name Display Format</label>
-                  <select
-                    className="w-full mt-1 border rounded-md h-10 px-3"
-                    value={nameFormat}
-                    onChange={(e) => {
-                      setNameFormat(e.target.value);
-                      updateNameFormatMutation.mutate({ format: e.target.value });
-                    }}
-                  >
-                    <option value="full">Full Name (John Smith)</option>
-                    <option value="first">First Name Only (John)</option>
-                    <option value="last">Last Name Only (Smith)</option>
-                    <option value="initials">Initials (JS)</option>
-                  </select>
+                  <div>
+                    <label className="text-sm font-medium">Availability Deadline Day</label>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Members cannot update their availability after this day of the month.
+                    </p>
+                    <select
+                      className="w-full mt-1 border rounded-md h-10 px-3"
+                      value={deadlineDay}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value);
+                        setDeadlineDay(value);
+                        updateSettingsMutation.mutate({ deadlineDay: value });
+                      }}
+                    >
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                        <option key={day} value={day}>
+                          {day}th of the month
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
+              </CardContent>
+            </Card>
 
-                <div>
-                  <label className="text-sm font-medium">Availability Deadline Day</label>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Members cannot update their availability after this day of the month.
-                  </p>
-                  <select
-                    className="w-full mt-1 border rounded-md h-10 px-3"
-                    value={deadlineDay}
-                    onChange={(e) => {
-                      const value = parseInt(e.target.value);
-                      setDeadlineDay(value);
-                      updateSettingsMutation.mutate({ deadlineDay: value });
-                    }}
+            {/* Special Sundays Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Special Sundays</span>
+                  <Button 
+                    onClick={() => {
+                      setSpecialDayToEdit(null);
+                      setShowSpecialDayDialog(true);
+                    }} 
+                    size="sm"
+                    className="ml-2"
                   >
-                    {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
-                      <option key={day} value={day}>
-                        {day}th of the month
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Special Sundays</span>
-                <Button 
-                  onClick={() => {
-                    setSpecialDayToEdit(null);
-                    setShowSpecialDayDialog(true);
-                  }} 
-                  size="sm"
-                  className="ml-2"
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add Special Sunday
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {/* Special Days Query */}
-                <SpecialDaysList
-                  onEdit={(specialDay) => {
-                    setSpecialDayToEdit(specialDay);
-                    setShowSpecialDayDialog(true);
-                  }}
-                  onDelete={(specialDay) => setSpecialDayToDelete(specialDay)}
-                />
-                
-                {/* Special Day Dialog */}
-                <SpecialDayDialog 
-                  isOpen={showSpecialDayDialog}
-                  onClose={() => setShowSpecialDayDialog(false)}
-                  specialDay={specialDayToEdit}
-                />
-                
-                {/* Delete Confirmation */}
-                <AlertDialog open={!!specialDayToDelete} onOpenChange={() => setSpecialDayToDelete(null)}>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to delete the special day "{specialDayToDelete?.name}"? This action cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={async () => {
-                        if (specialDayToDelete) {
-                          try {
-                            toast({
-                              title: "Deleting...",
-                              description: "Removing special day"
-                            });
-                            
-                            // Direct API call to ensure we have access to proper error handling
-                            const response = await fetch(`/api/admin/special-days/${specialDayToDelete.id}`, {
-                              method: 'DELETE',
-                              credentials: 'include'
-                            });
-                            
-                            if (!response.ok) {
-                              throw new Error(`Failed to delete special day: ${response.status}`);
-                            }
-                            
-                            // Invalidate the special days query to refresh the data
-                            queryClient.invalidateQueries({ queryKey: ["/api/special-days"] });
-                            
-                            toast({
-                              title: "Success",
-                              description: "Special day deleted successfully"
-                            });
-                          } catch (error) {
-                            console.error("Error deleting special day:", error);
-                            toast({
-                              title: "Error",
-                              description: "Failed to delete special day",
-                              variant: "destructive"
-                            });
-                          } finally {
-                            setSpecialDayToDelete(null);
-                          }
-                        }
-                      }}>
-                        Delete
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Send Roster</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Email Address</label>
-                <div className="flex gap-2">
-                  <Input
-                    type="email"
-                    placeholder="Enter email address"
-                    value={emailAddress}
-                    onChange={(e) => setEmailAddress(e.target.value)}
-                  />
-                  <Button
-                    onClick={handleSendRoster}
-                    disabled={isSendingEmail}
-                    className="whitespace-nowrap"
-                  >
-                    {isSendingEmail ? (
-                      <ChurchLoader type="mail" size="xs" className="mr-2" />
-                    ) : (
-                      <Mail className="h-4 w-4 mr-2" />
-                    )}
-                    Send Roster
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Special Sunday
                   </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Special Days List */}
+                  <SpecialDaysList
+                    onEdit={(specialDay) => {
+                      setSpecialDayToEdit(specialDay);
+                      setShowSpecialDayDialog(true);
+                    }}
+                    onDelete={(specialDay) => setSpecialDayToDelete(specialDay)}
+                  />
+                  
+                  {/* Special Day Dialog */}
+                  <SpecialDayDialog 
+                    isOpen={showSpecialDayDialog}
+                    onClose={() => setShowSpecialDayDialog(false)}
+                    specialDay={specialDayToEdit}
+                  />
+                  
+                  {/* Delete Confirmation */}
+                  <AlertDialog open={!!specialDayToDelete} onOpenChange={() => setSpecialDayToDelete(null)}>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete the special day "{specialDayToDelete?.name}"? This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={async () => {
+                          if (specialDayToDelete) {
+                            try {
+                              toast({
+                                title: "Deleting...",
+                                description: "Removing special day"
+                              });
+                              
+                              // Direct API call to ensure we have access to proper error handling
+                              const response = await fetch(`/api/admin/special-days/${specialDayToDelete.id}`, {
+                                method: 'DELETE',
+                                credentials: 'include'
+                              });
+                              
+                              if (!response.ok) {
+                                throw new Error(`Failed to delete special day: ${response.status}`);
+                              }
+                              
+                              // Invalidate the special days query to refresh the data
+                              queryClient.invalidateQueries({ queryKey: ["/api/special-days"] });
+                              
+                              toast({
+                                title: "Success",
+                                description: "Special day deleted successfully"
+                              });
+                            } catch (error) {
+                              console.error("Error deleting special day:", error);
+                              toast({
+                                title: "Error",
+                                description: "Failed to delete special day",
+                                variant: "destructive"
+                              });
+                            } finally {
+                              setSpecialDayToDelete(null);
+                            }
+                          }
+                        }}>
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Month</label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-start text-left font-normal"
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {format(selectedMonth, "MMMM yyyy")}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <div className="p-2 text-center text-sm font-medium border-b">
-                          Available Months
-                        </div>
-                        {availableMonths.length > 0 ? (
-                          <div className="p-3">
-                            {availableMonths.map((month) => (
-                              <Button
-                                key={format(month, 'yyyy-MM')}
-                                variant={format(month, 'yyyy-MM') === format(selectedMonth, 'yyyy-MM') ? "default" : "outline"}
-                                className="w-full mb-2"
-                                onClick={() => setSelectedMonth(month)}
-                              >
-                                {format(month, 'MMMM yyyy')}
-                              </Button>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="p-3">
-                            <p className="text-sm text-center text-muted-foreground">
-                              No months with availability data
-                            </p>
-                          </div>
-                        )}
-                      </PopoverContent>
-                    </Popover>
+              </CardContent>
+            </Card>
+
+            {/* Send Roster Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Send Roster</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Email Address</label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="email"
+                      placeholder="Enter email address"
+                      value={emailAddress}
+                      onChange={(e) => setEmailAddress(e.target.value)}
+                    />
+                    <Button
+                      onClick={handleSendRoster}
+                      disabled={isSendingEmail}
+                      className="whitespace-nowrap"
+                    >
+                      {isSendingEmail ? (
+                        <ChurchLoader type="mail" size="xs" className="mr-2" />
+                      ) : (
+                        <Mail className="h-4 w-4 mr-2" />
+                      )}
+                      Send Roster
+                    </Button>
                   </div>
                   
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">View Style</label>
-                    <Select
-                      value={viewType}
-                      onValueChange={(value) => setViewType(value as "card" | "simple")}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a view type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="card">Card View</SelectItem>
-                        <SelectItem value="simple">Simple View</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Month</label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-start text-left font-normal"
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {format(selectedMonth, "MMMM yyyy")}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <div className="p-2 text-center text-sm font-medium border-b">
+                            Available Months
+                          </div>
+                          {availableMonths.length > 0 ? (
+                            <div className="p-3">
+                              {availableMonths.map((month) => (
+                                <Button
+                                  key={format(month, 'yyyy-MM')}
+                                  variant={format(month, 'yyyy-MM') === format(selectedMonth, 'yyyy-MM') ? "default" : "outline"}
+                                  className="w-full mb-2"
+                                  onClick={() => setSelectedMonth(month)}
+                                >
+                                  {format(month, 'MMMM yyyy')}
+                                </Button>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="p-3">
+                              <p className="text-sm text-center text-muted-foreground">
+                                No months with availability data
+                              </p>
+                            </div>
+                          )}
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">View Style</label>
+                      <Select
+                        value={viewType}
+                        onValueChange={(value) => setViewType(value as "card" | "simple")}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a view type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="card">Card View</SelectItem>
+                          <SelectItem value="simple">Simple View</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                </div>
-                
-                <p className="text-sm text-muted-foreground mt-4">
-                  The roster for {format(selectedMonth, "MMMM yyyy")} will be sent as a PDF attachment.
-                </p>
-                {/* Email test button removed as requested - keep functionality for future use
-                <div className="mt-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => testEmailConfigMutation.mutate()}
-                    disabled={testEmailConfigMutation.isPending}
-                    className="w-full"
-                  >
-                    {testEmailConfigMutation.isPending ? (
-                      <ChurchLoader type="mail" size="xs" className="mr-2" />
-                    ) : (
-                      <span className="flex items-center">
-                        <Settings className="h-4 w-4 mr-2" />
-                        Test Email Configuration
-                      </span>
-                    )}
-                  </Button>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Click to validate your email server connection without sending an email.
+                  
+                  <p className="text-sm text-muted-foreground mt-4">
+                    The roster for {format(selectedMonth, "MMMM yyyy")} will be sent as a PDF attachment.
                   </p>
                 </div>
-                */}
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="members" className="space-y-6">
+            {/* Add New Member Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Add New Member</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Input
+                    placeholder="First Name"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                  />
+                  <Input
+                    placeholder="Last Name"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                  />
+                </div>
+                <Button
+                  className="w-full"
+                  onClick={handleCreateMember}
+                  disabled={createMemberMutation.isPending}
+                >
+                  {createMemberMutation.isPending ? (
+                    <ChurchLoader type="users" size="xs" className="mr-2" />
+                  ) : (
+                    "Add Member"
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Add New Member</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <Input
-                  placeholder="First Name"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                />
-                <Input
-                  placeholder="Last Name"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                />
-              </div>
-              <Button
-                className="w-full"
-                onClick={handleCreateMember}
-                disabled={createMemberMutation.isPending}
-              >
-                {createMemberMutation.isPending ? (
-                  <ChurchLoader type="users" size="xs" className="mr-2" />
-                ) : (
-                  "Add Member"
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Manage Members</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md border">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="p-4 text-left">Name</th>
-                      <th className="p-4 text-left">Initials</th>
-                      <th className="p-4 text-left">Role</th>
-                      <th className="p-4 text-left">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users?.map((member) => (
-                      <tr key={member.id} className="border-b">
-                        <td className="p-4">
-                          {member.firstName} {member.lastName}
-                        </td>
-                        <td className="p-4">
-                          {member.initials || "N/A"}
-                        </td>
-                        <td className="p-4">
-                          {member.isAdmin ? "Admin" : "Member"}
-                        </td>
-                        <td className="p-4">
-                          <div className="flex space-x-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              title="Edit Initials"
-                              onClick={() => handleEditInitials(member)}
-                            >
-                              <UserCog className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              title="Edit Name"
-                              onClick={() => handleEditName(member)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                              onClick={() => handleDeleteMember(member)}
-                              disabled={deleteMemberMutation.isPending || member.id === user?.id}
-                              title="Delete Member"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </td>
+            {/* Manage Members Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Manage Members</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="p-4 text-left">Name</th>
+                        <th className="p-4 text-left">Initials</th>
+                        <th className="p-4 text-left">Role</th>
+                        <th className="p-4 text-left">Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                    </thead>
+                    <tbody>
+                      {sortedUsers.map((member) => (
+                        <tr key={member.id} className="border-b">
+                          <td className="p-4">
+                            {member.firstName} {member.lastName}
+                          </td>
+                          <td className="p-4">
+                            {member.initials || "N/A"}
+                          </td>
+                          <td className="p-4">
+                            {member.isAdmin ? "Admin" : "Member"}
+                          </td>
+                          <td className="p-4">
+                            <div className="flex space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                title="Edit Initials"
+                                onClick={() => handleEditInitials(member)}
+                              >
+                                <UserCog className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                title="Edit Name"
+                                onClick={() => handleEditName(member)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                onClick={() => handleDeleteMember(member)}
+                                disabled={deleteMemberMutation.isPending || member.id === user?.id}
+                                title="Delete Member"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </main>
 
+      {/* Delete Member Dialog */}
       <AlertDialog 
         open={!!memberToDelete} 
         onOpenChange={(open) => {
@@ -1554,6 +1583,7 @@ export default function AdminPage() {
         onSave={handleSaveInitials}
       />
       
+      {/* Name Edit Dialog */}
       <NameDialog 
         isOpen={nameDialogOpen}
         onClose={() => setNameDialogOpen(false)}
