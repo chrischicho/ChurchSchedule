@@ -60,8 +60,15 @@ export function RosterBuilder() {
   } = useQuery({
     queryKey: ['/api/roster-builder/available-sundays', currentMonth.getFullYear(), currentMonth.getMonth() + 1],
     queryFn: async () => {
-      const response = await apiRequest(`/api/roster-builder/available-sundays/${currentMonth.getFullYear()}/${currentMonth.getMonth() + 1}`);
-      return response;
+      const response = await fetch(`/api/roster-builder/available-sundays/${currentMonth.getFullYear()}/${currentMonth.getMonth() + 1}`, {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch available Sundays');
+      }
+      
+      return response.json();
     }
   });
 
@@ -288,7 +295,7 @@ export function RosterBuilder() {
           
           {sundaysData && sundaysData.length > 0 ? (
             <div className="space-y-2">
-              {sundaysData.map((sunday: SundayData) => (
+              {Array.isArray(sundaysData) && sundaysData.map((sunday: SundayData) => (
                 <Card 
                   key={sunday.dateStr}
                   className={`cursor-pointer hover:bg-muted/50 transition-colors ${
