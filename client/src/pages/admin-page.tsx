@@ -1364,10 +1364,10 @@ export default function AdminPage() {
               </CardContent>
             </Card>
 
-            {/* Send Roster Card */}
+            {/* Send Availability Card */}
             <Card>
               <CardHeader>
-                <CardTitle>Send Roster</CardTitle>
+                <CardTitle>Send Availability</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -1389,7 +1389,7 @@ export default function AdminPage() {
                       ) : (
                         <Mail className="h-4 w-4 mr-2" />
                       )}
-                      Send Roster
+                      Send
                     </Button>
                   </div>
                   
