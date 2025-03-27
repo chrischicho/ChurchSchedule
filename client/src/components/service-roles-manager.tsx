@@ -186,7 +186,8 @@ export function ServiceRolesManager() {
         throw new Error(errorData.message || 'Failed to delete service role');
       }
       
-      return response.json();
+      // No need to parse JSON for 200 status (success), just return success
+      return { success: true };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/service-roles'] });
