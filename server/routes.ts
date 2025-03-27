@@ -283,24 +283,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email address is required" });
       }
 
+      // Get roster data
+      const availabilityRecords = await storage.getAvailability();
+      console.log("Total availability records:", availabilityRecords.length);
+      console.log("Available records:", availabilityRecords.filter(r => r.isAvailable).length);
+      
       // Use the selected month or default to current month
       const selectedMonth = month ? new Date(month) : new Date();
       console.log("Selected month:", selectedMonth.toISOString());
       
-      const selectedMonthNum = selectedMonth.getMonth();
-      const selectedYearNum = selectedMonth.getFullYear();
-      
-      // Get roster assignments with user data for the selected month
-      const rosterAssignments = await storage.getRosterAssignmentsWithUserData(selectedYearNum, selectedMonthNum);
-      console.log("Retrieved roster assignments:", rosterAssignments.length);
+      const allUsers = await storage.getAllUsers();
+      console.log("Total users:", allUsers.length);
       
       // Group users by service date
       const rosterData: { [key: string]: User[] } = {};
       
-      // Process roster assignments
-      for (const assignment of rosterAssignments) {
+      // Process availability records
+      for (const record of availabilityRecords) {
+        // Only include available users
+        if (!record.isAvailable) continue;
+        
         // Make sure we're working with proper Date objects
-        const serviceDate = new Date(assignment.serviceDate);
+        const serviceDate = new Date(record.serviceDate);
         
         // Use ISO string for consistent key format
         const isoDateStr = serviceDate.toISOString();
@@ -309,24 +313,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
           rosterData[isoDateStr] = [];
         }
         
-        // Add the user to the roster for this date if they're not already included
-        const user = assignment.user;
-        if (user && !rosterData[isoDateStr].some(u => u.id === user.id)) {
+        // Find the corresponding user
+        const user = allUsers.find(u => u.id === record.userId);
+        if (user) {
           rosterData[isoDateStr].push(user);
         }
       }
       
-      console.log("Service dates with assigned users:", Object.keys(rosterData).length);
+      console.log("Service dates with available users:", Object.keys(rosterData).length);
+      
+      // Filter availability records for the selected month
+      const filteredRosterData: { [key: string]: User[] } = {};
+      const selectedMonthStr = selectedMonth.getMonth();
+      const selectedYearStr = selectedMonth.getFullYear();
+      
+      console.log("Filtering for month:", selectedMonthStr, "year:", selectedYearStr);
+      
+      // Filter out service dates that don't match the selected month
+      Object.entries(rosterData).forEach(([isoDateStr, users]) => {
+        const date = new Date(isoDateStr);
+        console.log("Checking date:", format(date, "yyyy-MM-dd"), "Month:", date.getMonth(), "Year:", date.getFullYear());
+        
+        if (date.getMonth() === selectedMonthStr && date.getFullYear() === selectedYearStr) {
+          // Keep using ISO string format consistently
+          filteredRosterData[isoDateStr] = users;
+          console.log("Added date", format(date, "yyyy-MM-dd"), "with", users.length, "users");
+        }
+      });
       
       // Get a random verse for the PDF
       const verse = await storage.getRandomVerse('serving');
       
       // Create the PDF document with our data
-      console.log("Final rosterData:", JSON.stringify(rosterData));
+      console.log("Final filteredRosterData:", JSON.stringify(filteredRosterData));
       
       const rosterPDFElement = createElement(RosterPDF, { 
         month: selectedMonth, 
-        rosterData: rosterData,
+        rosterData: filteredRosterData,
         viewType: viewType || "card",
         verse: verse
       });
