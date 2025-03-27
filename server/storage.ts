@@ -586,23 +586,31 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getRosterAssignmentsWithUserData(year: number, month: number): Promise<any[]> {
+    console.log(`Getting roster assignments for year=${year} month=${month}`);
+    
     // Get assignments for the month
     const assignments = await this.getRosterAssignmentsForMonth(year, month);
+    console.log(`Found ${assignments.length} roster assignments`);
     
     // Get users and roles for lookup
     const allUsers = await this.getAllUsers();
     const allRoles = await this.getAllServiceRoles();
+    
+    console.log(`Found ${allUsers.length} users and ${allRoles.length} roles for mapping`);
     
     // Map to create lookup dictionaries
     const userMap = new Map(allUsers.map(user => [user.id, user]));
     const roleMap = new Map(allRoles.map(role => [role.id, role]));
     
     // Combine data
-    return assignments.map(assignment => ({
+    const result = assignments.map(assignment => ({
       ...assignment,
       user: userMap.get(assignment.userId),
       role: roleMap.get(assignment.roleId)
     }));
+    
+    console.log(`Processed ${result.length} assignments with user and role data`);
+    return result;
   }
   
   async createRosterAssignment(assignment: InsertRosterAssignment): Promise<RosterAssignment> {
