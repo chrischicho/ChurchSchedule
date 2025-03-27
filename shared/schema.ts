@@ -113,20 +113,5 @@ export type Settings = typeof settings.$inferSelect;
 export type InsertSettings = z.infer<typeof insertSettingsSchema>;
 export type Verse = typeof verses.$inferSelect;
 export type InsertVerse = z.infer<typeof insertVerseSchema>;
-// Roster schema
-export const roster = pgTable("roster", {
-  id: serial("id").primaryKey(),
-  serviceDate: date("service_date").notNull(),
-  userId: integer("user_id").notNull(),
-  lastUpdated: timestamp("last_updated").defaultNow().notNull(),
-});
-
-export const insertRosterSchema = createInsertSchema(roster).omit({
-  id: true,
-  lastUpdated: true
-});
-
 export type SpecialDay = typeof specialDays.$inferSelect;
 export type InsertSpecialDay = z.infer<typeof insertSpecialDaySchema>;
-export type Roster = typeof roster.$inferSelect;
-export type InsertRoster = z.infer<typeof insertRosterSchema>;

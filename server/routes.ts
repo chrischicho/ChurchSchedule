@@ -705,52 +705,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Roster Management Endpoints
-  app.get("/api/admin/roster", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user.isAdmin) {
-      return res.sendStatus(403);
-    }
-
-    try {
-      const roster = await storage.getRoster();
-      res.json(roster);
-    } catch (err) {
-      res.status(500).json({ message: "Failed to fetch roster" });
-    }
-  });
-
-  app.post("/api/admin/roster", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user.isAdmin) {
-      return res.sendStatus(403);
-    }
-
-    try {
-      const { serviceDate, userId } = insertRosterSchema.parse(req.body);
-      const assignment = await storage.createRosterAssignment({ serviceDate, userId });
-      res.status(201).json(assignment);
-    } catch (err) {
-      if (err instanceof ZodError) {
-        res.status(400).json({ message: "Invalid roster data" });
-      } else {
-        res.status(500).json({ message: "Failed to create roster assignment" });
-      }
-    }
-  });
-
-  app.delete("/api/admin/roster/:serviceDate/:userId", async (req, res) => {
-    if (!req.isAuthenticated() || !req.user.isAdmin) {
-      return res.sendStatus(403);
-    }
-
-    try {
-      const { serviceDate, userId } = req.params;
-      await storage.deleteRosterAssignment(new Date(serviceDate), parseInt(userId));
-      res.sendStatus(200);
-    } catch (err) {
-      res.status(500).json({ message: "Failed to delete roster assignment" });
-    }
-  });
-
   const httpServer = createServer(app);
   return httpServer;
 }
