@@ -9,6 +9,8 @@ import {
   User, 
   insertVerseSchema, 
   insertSpecialDaySchema,
+  insertServiceRoleSchema,
+  insertRosterAssignmentSchema,
   updateProfileSchema,
   updateMemberNameSchema
 } from "@shared/schema";
@@ -702,6 +704,194 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.sendStatus(200);
     } catch (err) {
       res.status(500).json({ message: "Failed to delete special day" });
+    }
+  });
+  
+  // Service Roles endpoints
+  app.get("/api/service-roles", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      // Return active roles for non-admin users
+      if (!req.user.isAdmin) {
+        const roles = await storage.getActiveServiceRoles();
+        return res.json(roles);
+      }
+      
+      // Return all roles for admins
+      const roles = await storage.getAllServiceRoles();
+      res.json(roles);
+    } catch (err) {
+      console.error("Error fetching service roles:", err);
+      res.status(500).json({ message: "Failed to fetch service roles" });
+    }
+  });
+  
+  app.post("/api/admin/service-roles", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user.isAdmin) return res.sendStatus(403);
+    
+    try {
+      const data = insertServiceRoleSchema.parse(req.body);
+      const role = await storage.createServiceRole(data);
+      res.status(201).json(role);
+    } catch (err) {
+      if (err instanceof ZodError) {
+        res.status(400).json({ message: "Invalid service role data" });
+      } else {
+        console.error("Error creating service role:", err);
+        res.status(500).json({ message: "Failed to create service role" });
+      }
+    }
+  });
+  
+  app.patch("/api/admin/service-roles/:id", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user.isAdmin) return res.sendStatus(403);
+    
+    try {
+      const id = parseInt(req.params.id);
+      const role = await storage.updateServiceRole(id, req.body);
+      res.json(role);
+    } catch (err) {
+      console.error("Error updating service role:", err);
+      if (err instanceof Error) {
+        res.status(400).json({ message: err.message });
+      } else {
+        res.status(500).json({ message: "Failed to update service role" });
+      }
+    }
+  });
+  
+  app.delete("/api/admin/service-roles/:id", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user.isAdmin) return res.sendStatus(403);
+    
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteServiceRole(id);
+      res.sendStatus(200);
+    } catch (err) {
+      console.error("Error deleting service role:", err);
+      if (err instanceof Error) {
+        res.status(400).json({ message: err.message });
+      } else {
+        res.status(500).json({ message: "Failed to delete service role" });
+      }
+    }
+  });
+  
+  app.post("/api/admin/service-roles/reorder", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user.isAdmin) return res.sendStatus(403);
+    
+    try {
+      const { roleIds } = req.body;
+      if (!Array.isArray(roleIds)) {
+        return res.status(400).json({ message: "Role IDs must be an array" });
+      }
+      
+      const roles = await storage.reorderServiceRoles(roleIds);
+      res.json(roles);
+    } catch (err) {
+      console.error("Error reordering service roles:", err);
+      res.status(500).json({ message: "Failed to reorder service roles" });
+    }
+  });
+  
+  // Roster Assignment endpoints
+  app.get("/api/roster-assignments/month/:year/:month", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const year = parseInt(req.params.year);
+      const month = parseInt(req.params.month);
+      
+      const assignments = await storage.getRosterAssignmentsWithUserData(year, month);
+      res.json(assignments);
+    } catch (err) {
+      console.error("Error fetching roster assignments:", err);
+      res.status(500).json({ message: "Failed to fetch roster assignments" });
+    }
+  });
+  
+  app.post("/api/admin/roster-assignments", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user.isAdmin) return res.sendStatus(403);
+    
+    try {
+      const data = insertRosterAssignmentSchema.parse(req.body);
+      const assignment = await storage.createRosterAssignment(data);
+      res.status(201).json(assignment);
+    } catch (err) {
+      if (err instanceof ZodError) {
+        res.status(400).json({ 
+          message: "Invalid roster assignment data",
+          errors: err.errors
+        });
+      } else if (err instanceof Error) {
+        res.status(400).json({ message: err.message });
+      } else {
+        res.status(500).json({ message: "Failed to create roster assignment" });
+      }
+    }
+  });
+  
+  app.patch("/api/admin/roster-assignments/:id", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user.isAdmin) return res.sendStatus(403);
+    
+    try {
+      const id = parseInt(req.params.id);
+      const assignment = await storage.updateRosterAssignment(id, req.body);
+      res.json(assignment);
+    } catch (err) {
+      console.error("Error updating roster assignment:", err);
+      if (err instanceof Error) {
+        res.status(400).json({ message: err.message });
+      } else {
+        res.status(500).json({ message: "Failed to update roster assignment" });
+      }
+    }
+  });
+  
+  app.delete("/api/admin/roster-assignments/:id", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user.isAdmin) return res.sendStatus(403);
+    
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteRosterAssignment(id);
+      res.sendStatus(200);
+    } catch (err) {
+      console.error("Error deleting roster assignment:", err);
+      res.status(500).json({ message: "Failed to delete roster assignment" });
+    }
+  });
+  
+  app.delete("/api/admin/roster-assignments/date/:year/:month/:day", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user.isAdmin) return res.sendStatus(403);
+    
+    try {
+      const year = parseInt(req.params.year);
+      const month = parseInt(req.params.month) - 1; // JS months are 0-indexed
+      const day = parseInt(req.params.day);
+      
+      const date = new Date(year, month, day);
+      await storage.clearRosterAssignmentsForDate(date);
+      res.sendStatus(200);
+    } catch (err) {
+      console.error("Error clearing roster assignments for date:", err);
+      res.status(500).json({ message: "Failed to clear roster assignments" });
+    }
+  });
+  
+  // Roster Builder helper endpoints
+  app.get("/api/roster-builder/available-sundays/:year/:month", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user.isAdmin) return res.sendStatus(403);
+    
+    try {
+      const year = parseInt(req.params.year);
+      const month = parseInt(req.params.month);
+      
+      const sundays = await storage.getAvailableSundaysWithPeople(year, month);
+      res.json(sundays);
+    } catch (err) {
+      console.error("Error fetching available Sundays:", err);
+      res.status(500).json({ message: "Failed to fetch available Sundays" });
     }
   });
 
