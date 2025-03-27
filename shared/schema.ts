@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, date, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, date, timestamp, json } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -41,6 +41,26 @@ export const specialDays = pgTable("special_days", {
   color: text("color").default("#FFD700").notNull(), // Default to gold color
 });
 
+// Define service roles
+export const serviceRoles = pgTable("service_roles", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  order: integer("order").default(0).notNull(), // For ordering roles in the UI
+  isActive: boolean("is_active").default(true).notNull(), // To enable/disable roles
+});
+
+// Store roster assignments
+export const rosterAssignments = pgTable("roster_assignments", {
+  id: serial("id").primaryKey(),
+  serviceDate: date("service_date").notNull(),
+  roleId: integer("role_id").notNull(),
+  userId: integer("user_id").notNull(),
+  notes: text("notes"), // Optional notes for this assignment
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({ 
   id: true 
 });
@@ -60,6 +80,16 @@ export const insertVerseSchema = createInsertSchema(verses).omit({
 
 export const insertSpecialDaySchema = createInsertSchema(specialDays).omit({
   id: true
+});
+
+export const insertServiceRoleSchema = createInsertSchema(serviceRoles).omit({
+  id: true
+});
+
+export const insertRosterAssignmentSchema = createInsertSchema(rosterAssignments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
 });
 
 export const updatePinSchema = z.object({
@@ -115,3 +145,7 @@ export type Verse = typeof verses.$inferSelect;
 export type InsertVerse = z.infer<typeof insertVerseSchema>;
 export type SpecialDay = typeof specialDays.$inferSelect;
 export type InsertSpecialDay = z.infer<typeof insertSpecialDaySchema>;
+export type ServiceRole = typeof serviceRoles.$inferSelect;
+export type InsertServiceRole = z.infer<typeof insertServiceRoleSchema>;
+export type RosterAssignment = typeof rosterAssignments.$inferSelect;
+export type InsertRosterAssignment = z.infer<typeof insertRosterAssignmentSchema>;

@@ -56,9 +56,11 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Trash2, Mail, Settings, Calendar as CalendarIcon, Plus, Edit, Star, UserCog, Users } from "lucide-react";
+import { Trash2, Mail, Settings, Calendar as CalendarIcon, Plus, Edit, Star, UserCog, Users, CalendarRange } from "lucide-react";
 import { ChurchLoader } from "@/components/church-loader";
 import { LoaderOverlay } from "@/components/loader-overlay";
+import { RosterBuilder } from "@/components/roster-builder";
+import { ServiceRolesManager } from "@/components/service-roles-manager";
 
 // Form schema for special days
 const specialDaySchema = z.object({
@@ -1213,6 +1215,10 @@ export default function AdminPage() {
               <Users className="h-4 w-4 mr-2" />
               Member Management
             </TabsTrigger>
+            <TabsTrigger value="roster" className="flex-1">
+              <CalendarRange className="h-4 w-4 mr-2" />
+              Roster Builder
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="settings" className="space-y-6">
@@ -1551,6 +1557,14 @@ export default function AdminPage() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+          
+          <TabsContent value="roster" className="space-y-6">
+            {/* Service Roles Manager */}
+            <ServiceRolesManager />
+            
+            {/* Roster Builder */}
+            <RosterBuilder />
           </TabsContent>
         </Tabs>
       </main>

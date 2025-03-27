@@ -1,11 +1,13 @@
 import { IStorage } from "./storage.interface";
 import { 
-  users, availability, settings, verses, specialDays,
+  users, availability, settings, verses, specialDays, serviceRoles, rosterAssignments,
   InsertUser, User, 
   InsertAvailability, Availability, 
   Settings,
   Verse, InsertVerse,
   SpecialDay, InsertSpecialDay,
+  ServiceRole, InsertServiceRole,
+  RosterAssignment, InsertRosterAssignment,
   UpdateProfile
 } from "@shared/schema";
 import { db } from "./db";
@@ -471,6 +473,309 @@ export class DatabaseStorage implements IStorage {
   
   async deleteSpecialDay(id: number): Promise<void> {
     await db.delete(specialDays).where(eq(specialDays.id, id));
+  }
+  
+  // Service Roles operations
+  async getAllServiceRoles(): Promise<ServiceRole[]> {
+    return db.select().from(serviceRoles).orderBy(serviceRoles.order);
+  }
+  
+  async getActiveServiceRoles(): Promise<ServiceRole[]> {
+    return db.select().from(serviceRoles).where(eq(serviceRoles.isActive, true)).orderBy(serviceRoles.order);
+  }
+  
+  async getServiceRole(id: number): Promise<ServiceRole | undefined> {
+    const [role] = await db.select().from(serviceRoles).where(eq(serviceRoles.id, id));
+    return role;
+  }
+  
+  async createServiceRole(role: InsertServiceRole): Promise<ServiceRole> {
+    // Get current max order
+    const allRoles = await this.getAllServiceRoles();
+    const maxOrder = allRoles.length > 0 
+      ? Math.max(...allRoles.map(r => r.order)) 
+      : -1;
+    
+    // Create a new role with the next order value
+    const [created] = await db
+      .insert(serviceRoles)
+      .values({
+        ...role,
+        order: maxOrder + 1
+      })
+      .returning();
+    
+    return created;
+  }
+  
+  async updateServiceRole(id: number, role: Partial<InsertServiceRole>): Promise<ServiceRole> {
+    const [updated] = await db
+      .update(serviceRoles)
+      .set(role)
+      .where(eq(serviceRoles.id, id))
+      .returning();
+    
+    if (!updated) throw new Error("Service role not found");
+    return updated;
+  }
+  
+  async deleteServiceRole(id: number): Promise<void> {
+    // Check if the role is used in any assignments
+    const assignments = await db
+      .select()
+      .from(rosterAssignments)
+      .where(eq(rosterAssignments.roleId, id));
+    
+    if (assignments.length > 0) {
+      throw new Error("Cannot delete a role that is used in roster assignments");
+    }
+    
+    await db.delete(serviceRoles).where(eq(serviceRoles.id, id));
+  }
+  
+  async reorderServiceRoles(roleIds: number[]): Promise<ServiceRole[]> {
+    // Batch update all roles with their new order
+    const updates = roleIds.map(async (id, index) => {
+      return db
+        .update(serviceRoles)
+        .set({ order: index })
+        .where(eq(serviceRoles.id, id));
+    });
+    
+    await Promise.all(updates);
+    
+    // Return the reordered roles
+    return this.getAllServiceRoles();
+  }
+  
+  // Roster Assignment operations
+  async getRosterAssignmentsForDate(date: Date): Promise<RosterAssignment[]> {
+    const dateStr = date.toISOString().split('T')[0];
+    
+    return db
+      .select()
+      .from(rosterAssignments)
+      .where(eq(rosterAssignments.serviceDate, dateStr));
+  }
+  
+  async getRosterAssignmentsForMonth(year: number, month: number): Promise<RosterAssignment[]> {
+    // Create date range for the month (adjust for JavaScript's 0-based months)
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0); // Last day of the month
+    
+    const startDateStr = startDate.toISOString().split('T')[0];
+    const endDateStr = endDate.toISOString().split('T')[0];
+    
+    // Select assignments within the date range
+    return db
+      .select()
+      .from(rosterAssignments)
+      .where(sql`${rosterAssignments.serviceDate} >= ${startDateStr} AND ${rosterAssignments.serviceDate} <= ${endDateStr}`);
+  }
+  
+  async getRosterAssignmentsWithUserData(year: number, month: number): Promise<any[]> {
+    // Get assignments for the month
+    const assignments = await this.getRosterAssignmentsForMonth(year, month);
+    
+    // Get users and roles for lookup
+    const allUsers = await this.getAllUsers();
+    const allRoles = await this.getAllServiceRoles();
+    
+    // Map to create lookup dictionaries
+    const userMap = new Map(allUsers.map(user => [user.id, user]));
+    const roleMap = new Map(allRoles.map(role => [role.id, role]));
+    
+    // Combine data
+    return assignments.map(assignment => ({
+      ...assignment,
+      user: userMap.get(assignment.userId),
+      role: roleMap.get(assignment.roleId)
+    }));
+  }
+  
+  async createRosterAssignment(assignment: InsertRosterAssignment): Promise<RosterAssignment> {
+    // Format date
+    let dateStr: string;
+    
+    if (typeof assignment.serviceDate === 'object' && assignment.serviceDate && 'toISOString' in assignment.serviceDate) {
+      dateStr = assignment.serviceDate.toISOString().split('T')[0];
+    } else if (typeof assignment.serviceDate === 'string') {
+      const parsedDate = new Date(assignment.serviceDate);
+      dateStr = parsedDate.toISOString().split('T')[0];
+    } else {
+      throw new Error("Invalid date format");
+    }
+    
+    // Check if user is already assigned to another role for this date
+    const existingAssignments = await db
+      .select()
+      .from(rosterAssignments)
+      .where(
+        and(
+          eq(rosterAssignments.serviceDate, dateStr),
+          eq(rosterAssignments.userId, assignment.userId)
+        )
+      );
+    
+    if (existingAssignments.length > 0) {
+      throw new Error("User is already assigned to a role for this date");
+    }
+    
+    // Create the assignment
+    const [created] = await db
+      .insert(rosterAssignments)
+      .values({
+        ...assignment,
+        serviceDate: dateStr,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    
+    return created;
+  }
+  
+  async updateRosterAssignment(id: number, assignment: Partial<InsertRosterAssignment>): Promise<RosterAssignment> {
+    // Format date if it exists
+    const updateData: Partial<InsertRosterAssignment> = { ...assignment };
+    
+    if (updateData.serviceDate) {
+      if (typeof updateData.serviceDate === 'object' && updateData.serviceDate && 'toISOString' in updateData.serviceDate) {
+        updateData.serviceDate = updateData.serviceDate.toISOString().split('T')[0];
+      } else if (typeof updateData.serviceDate === 'string') {
+        const parsedDate = new Date(updateData.serviceDate);
+        updateData.serviceDate = parsedDate.toISOString().split('T')[0];
+      }
+    }
+    
+    // Add updatedAt timestamp
+    const [updated] = await db
+      .update(rosterAssignments)
+      .set({
+        ...updateData,
+        updatedAt: new Date()
+      })
+      .where(eq(rosterAssignments.id, id))
+      .returning();
+    
+    if (!updated) throw new Error("Assignment not found");
+    return updated;
+  }
+  
+  async deleteRosterAssignment(id: number): Promise<void> {
+    await db.delete(rosterAssignments).where(eq(rosterAssignments.id, id));
+  }
+  
+  async clearRosterAssignmentsForDate(date: Date): Promise<void> {
+    const dateStr = date.toISOString().split('T')[0];
+    await db.delete(rosterAssignments).where(eq(rosterAssignments.serviceDate, dateStr));
+  }
+  
+  // Roster Builder Helper Methods
+  async getAvailableSundaysWithPeople(year: number, month: number): Promise<any[]> {
+    try {
+      // Create date range for the month (adjust for JavaScript's 0-based months)
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 0); // Last day of the month
+      
+      // Generate all Sundays in the month
+      const sundays: Date[] = [];
+      const currentDate = new Date(startDate);
+      
+      // Move to the first Sunday
+      currentDate.setDate(currentDate.getDate() + (7 - currentDate.getDay()) % 7);
+      
+      // Add all Sundays in the month
+      while (currentDate <= endDate) {
+        sundays.push(new Date(currentDate));
+        currentDate.setDate(currentDate.getDate() + 7);
+      }
+      
+      // Get all availability records for the month
+      const allAvailability = await this.getAvailability();
+      
+      // Get all users for lookup
+      const allUsers = await this.getAllUsers();
+      const userMap = new Map(allUsers.map(user => [user.id, user]));
+      
+      // Convert dates to strings for easier comparison
+      const sundayStrings = sundays.map(date => date.toISOString().split('T')[0]);
+      
+      // Filter availability records for the month's Sundays where isAvailable is true
+      const sundayAvailability = allAvailability.filter(record => {
+        const recordDateStr = new Date(record.serviceDate).toISOString().split('T')[0];
+        return sundayStrings.includes(recordDateStr) && record.isAvailable;
+      });
+      
+      // Get special days for the month
+      const specialDaysInMonth = await this.getSpecialDaysByMonth(year, month);
+      const specialDayMap = new Map(
+        specialDaysInMonth.map(day => [
+          new Date(day.date).toISOString().split('T')[0], 
+          day
+        ])
+      );
+      
+      // Get existing roster assignments for the month
+      const rosterAssignments = await this.getRosterAssignmentsForMonth(year, month);
+      
+      // Group assignments by date
+      const assignmentsByDate: Record<string, RosterAssignment[]> = {};
+      rosterAssignments.forEach(assignment => {
+        const dateStr = new Date(assignment.serviceDate).toISOString().split('T')[0];
+        if (!assignmentsByDate[dateStr]) {
+          assignmentsByDate[dateStr] = [];
+        }
+        assignmentsByDate[dateStr].push(assignment);
+      });
+      
+      // Get active service roles
+      const roles = await this.getActiveServiceRoles();
+      
+      // Organize data by Sunday
+      return sundays.map(sunday => {
+        const dateStr = sunday.toISOString().split('T')[0];
+        
+        // Find available people for this Sunday
+        const availablePeople = sundayAvailability
+          .filter(record => {
+            const recordDateStr = new Date(record.serviceDate).toISOString().split('T')[0];
+            return recordDateStr === dateStr;
+          })
+          .map(record => {
+            const user = userMap.get(record.userId);
+            return user ? {
+              ...user,
+              formattedName: this.formatUserName(user)
+            } : null;
+          })
+          .filter(user => user !== null);
+        
+        // Get assignments for this Sunday
+        const assignments = assignmentsByDate[dateStr] || [];
+        
+        // Get special day info if it exists
+        const specialDay = specialDayMap.get(dateStr);
+        
+        return {
+          date: sunday,
+          dateStr,
+          formattedDate: sunday.toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          }),
+          availablePeople,
+          assignments,
+          specialDay,
+          roles
+        };
+      });
+    } catch (error) {
+      console.error("Error in getAvailableSundaysWithPeople:", error);
+      return [];
+    }
   }
 }
 
