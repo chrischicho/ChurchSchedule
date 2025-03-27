@@ -253,6 +253,27 @@ export function RosterBuilder() {
       return;
     }
     
+    // Check if this person is already assigned to another role in the selected assignments
+    const isAssignedToAnotherRole = Object.entries(selectedAssignments).some(
+      ([currentRoleId, currentUserId]) => 
+        parseInt(currentRoleId) !== roleId && currentUserId === userId
+    );
+    
+    // Check if this person is already assigned to another role in the database assignments
+    const isAssignedInDatabase = selectedSunday?.assignments.some(
+      assignment => assignment.userId === userId && assignment.roleId !== roleId
+    );
+    
+    // If person is already assigned to another role, show an error and prevent assignment
+    if (isAssignedToAnotherRole || isAssignedInDatabase) {
+      toast({
+        title: "Person Already Assigned",
+        description: "This person is already assigned to another role. A person can only serve in one role per service.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     // Check if role has reached max limit and this would be a new assignment
     if (isRoleFull(roleId, roleName) && !selectedAssignments[roleId]) {
       const limit = ROLE_LIMITS[roleName] || 1;
@@ -619,24 +640,51 @@ export function RosterBuilder() {
                         )}
                         
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mt-3">
-                          {selectedSunday.availablePeople.map(person => (
-                            <div
-                              key={`${role.id}-${person.id}`}
-                              className={`
-                                border rounded-md p-2 text-sm cursor-pointer
-                                ${selectedAssignments[role.id] === person.id ? 'bg-primary/20 border-primary' : 'hover:bg-muted/50'}
-                                ${selectedSunday.assignments.some(a => a.userId === person.id && a.roleId !== role.id) ? 'opacity-50' : ''}
-                                ${isRoleFull(role.id, role.name) && !selectedAssignments[role.id] ? 'opacity-50 cursor-not-allowed' : ''}
-                              `}
-                              onClick={() => handleAssignRole(role.id, person.id, role.name)}
-                            >
-                              <p className="font-medium truncate">{person.formattedName}</p>
-                              <p className="text-xs text-muted-foreground truncate">{person.initials}</p>
-                              {selectedSunday.assignments.some(a => a.roleId === role.id && a.userId === person.id) && (
-                                <Badge variant="outline" className="mt-1">Assigned</Badge>
-                              )}
-                            </div>
-                          ))}
+                          {selectedSunday.availablePeople.map(person => {
+                            // Check if person is already assigned to another role
+                            const isAssignedElsewhere = selectedSunday.assignments.some(a => a.userId === person.id && a.roleId !== role.id) || 
+                                                      Object.entries(selectedAssignments).some(([otherRoleId, userId]) => 
+                                                        parseInt(otherRoleId) !== role.id && userId === person.id);
+                                                        
+                            if (isAssignedElsewhere) {
+                              return (
+                                <TooltipProvider key={`${role.id}-${person.id}`}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <div
+                                        className="border rounded-md p-2 text-sm opacity-50 cursor-not-allowed relative"
+                                      >
+                                        <p className="font-medium truncate">{person.formattedName}</p>
+                                        <p className="text-xs text-muted-foreground truncate">{person.initials}</p>
+                                        <Badge variant="secondary" className="mt-1 text-xs">Already assigned</Badge>
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p className="text-xs">This person is already assigned to another role. Each person can only serve in one role per service.</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              );
+                            } else {
+                              return (
+                                <div
+                                  key={`${role.id}-${person.id}`}
+                                  className={`
+                                    border rounded-md p-2 text-sm cursor-pointer relative
+                                    ${selectedAssignments[role.id] === person.id ? 'bg-primary/20 border-primary' : 'hover:bg-muted/50'}
+                                    ${isRoleFull(role.id, role.name) && !selectedAssignments[role.id] ? 'opacity-50 cursor-not-allowed' : ''}
+                                  `}
+                                  onClick={() => handleAssignRole(role.id, person.id, role.name)}
+                                >
+                                  <p className="font-medium truncate">{person.formattedName}</p>
+                                  <p className="text-xs text-muted-foreground truncate">{person.initials}</p>
+                                  {selectedSunday.assignments.some(a => a.roleId === role.id && a.userId === person.id) && (
+                                    <Badge variant="outline" className="mt-1">Assigned</Badge>
+                                  )}
+                                </div>
+                              );
+                            }
+                          })}
                         </div>
                         
                         {selectedSunday.availablePeople.length === 0 && (
@@ -654,12 +702,9 @@ export function RosterBuilder() {
                   </Alert>
                 )}
               </CardContent>
-              <CardFooter className="flex-col items-start space-y-2">
+              <CardFooter>
                 <p className="text-xs text-muted-foreground">
                   Note: People already assigned to other roles are shown with reduced opacity.
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Role limits: Worship Leader (3), Singer (4), Keyboardist (2), Bassist/Guitarist/Drummer (1), Usher/OBS & Sound/Multimedia (2)
                 </p>
               </CardFooter>
             </Card>
