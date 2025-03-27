@@ -253,9 +253,83 @@ export function RosterBuilder() {
     setIsConfirmDialogOpen(true);
   };
 
-  const confirmClearAssignments = () => {
+  const confirmClearAssignments = async () => {
     if (selectedSunday) {
-      clearDateAssignmentsMutation.mutate(selectedSunday.date);
+      try {
+        // Try manual fetch first to see if we can get more error details
+        const year = selectedSunday.date.getFullYear();
+        const month = selectedSunday.date.getMonth() + 1; // Adjusting for 0-indexed months
+        const day = selectedSunday.date.getDate();
+        
+        console.log(`Manually clearing assignments for date: ${year}-${month}-${day}`);
+        
+        const response = await fetch(`/api/admin/roster-assignments/date/${year}/${month}/${day}`, {
+          method: 'DELETE',
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+        
+        console.log("Response status:", response.status);
+        console.log("Response status text:", response.statusText);
+        
+        // Check response headers
+        const contentType = response.headers.get('content-type');
+        console.log("Content-Type:", contentType);
+        
+        if (response.ok) {
+          // If the response is successful, try to read the body if there is one
+          if (contentType && contentType.includes('application/json')) {
+            const jsonData = await response.json();
+            console.log("Response data:", jsonData);
+          } else {
+            console.log("No JSON response body");
+          }
+          
+          // Manually update the UI and cache
+          queryClient.invalidateQueries({ 
+            queryKey: ['/api/roster-builder/available-sundays', currentMonth.getFullYear(), currentMonth.getMonth() + 1] 
+          });
+          queryClient.invalidateQueries({ 
+            queryKey: ['/api/roster-assignments/month', currentMonth.getFullYear(), currentMonth.getMonth() + 1] 
+          });
+          setSelectedAssignments({});
+          toast({
+            title: "Assignments cleared",
+            description: "All assignments for this date have been removed.",
+          });
+          setIsConfirmDialogOpen(false);
+        } else {
+          // If there was an error, try to read error details
+          let errorMessage = "Failed to clear assignments";
+          try {
+            if (contentType && contentType.includes('application/json')) {
+              const errorData = await response.json();
+              errorMessage = errorData.message || errorMessage;
+            }
+          } catch (e) {
+            console.error("Error parsing error response:", e);
+          }
+          
+          console.error("Error clearing assignments:", errorMessage);
+          toast({
+            title: "Error clearing assignments",
+            description: errorMessage,
+            variant: "destructive",
+          });
+          setIsConfirmDialogOpen(false);
+        }
+      } catch (error) {
+        // This is for network errors or other exceptions
+        console.error("Exception in manual clear:", error);
+        toast({
+          title: "Error clearing assignments",
+          description: "A network error occurred. Please try again.",
+          variant: "destructive",
+        });
+        setIsConfirmDialogOpen(false);
+      }
     }
   };
 

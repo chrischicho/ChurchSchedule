@@ -65,7 +65,7 @@ export interface IStorage {
   createRosterAssignment(assignment: InsertRosterAssignment): Promise<RosterAssignment>;
   updateRosterAssignment(id: number, assignment: Partial<InsertRosterAssignment>): Promise<RosterAssignment>;
   deleteRosterAssignment(id: number): Promise<void>;
-  clearRosterAssignmentsForDate(date: Date): Promise<void>;
+  clearRosterAssignmentsForDate(date: Date): Promise<number>; // Returns the number of assignments that were deleted
   
   // Roster Builder Helper methods
   getAvailableSundaysWithPeople(year: number, month: number): Promise<any[]>;  // Returns Sundays with available people
