@@ -126,11 +126,16 @@ export function RosterBuilder() {
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to clear assignments');
+        try {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to clear assignments');
+        } catch (parseError) {
+          throw new Error('Failed to clear assignments');
+        }
       }
       
-      return response.json();
+      // Server returns 200 with no content, so we don't try to parse JSON
+      return true;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ 
