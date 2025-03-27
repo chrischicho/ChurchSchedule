@@ -363,8 +363,9 @@ export function RosterBuilder() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Left panel - Available Sundays */}
-        <div className="md:col-span-1 space-y-4">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0">
+        <div className="md:col-span-1">
+          {/* Month selector header */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 mb-4">
             <h3 className="font-medium text-lg">Available Sundays</h3>
             <div className="flex items-center space-x-2 self-end sm:self-auto">
               <Button 
