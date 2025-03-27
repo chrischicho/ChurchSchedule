@@ -50,7 +50,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { User, SpecialDay, CustomInitials } from "@shared/schema";
+import { User, SpecialDay, CustomInitials, UpdateMemberName, updateMemberNameSchema } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -599,6 +599,114 @@ function InitialsDialog({
   );
 }
 
+// Name editing dialog component
+function NameDialog({
+  isOpen,
+  onClose,
+  member,
+  onSave
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  member: User | null;
+  onSave: (userId: number, firstName: string, lastName: string) => void;
+}) {
+  const { toast } = useToast();
+  const [isPending, setIsPending] = useState(false);
+  
+  const form = useForm<UpdateMemberName>({
+    resolver: zodResolver(updateMemberNameSchema),
+    defaultValues: {
+      firstName: member?.firstName || '',
+      lastName: member?.lastName || ''
+    }
+  });
+  
+  // Reset the form when the dialog opens/closes or member changes
+  useEffect(() => {
+    if (isOpen && member) {
+      form.reset({
+        firstName: member.firstName,
+        lastName: member.lastName
+      });
+    }
+  }, [isOpen, member, form]);
+  
+  const handleSubmit = async (data: UpdateMemberName) => {
+    if (!member) return;
+    
+    try {
+      setIsPending(true);
+      onSave(member.id, data.firstName, data.lastName);
+      onClose();
+    } catch (error) {
+      console.error("Error updating name:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update name",
+        variant: "destructive"
+      });
+    } finally {
+      setIsPending(false);
+    }
+  };
+  
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Edit Member Name</DialogTitle>
+          <DialogDescription>
+            Update the name for this member.
+            This will affect how the member appears in the roster and other views.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="firstName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>First Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="First name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="lastName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Last Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Last name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <DialogFooter>
+              <Button type="submit" disabled={isPending}>
+                {isPending ? (
+                  <ChurchLoader type="users" size="xs" className="mr-2" />
+                ) : null}
+                Save Name
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function AdminPage() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -608,6 +716,8 @@ export default function AdminPage() {
   const [memberToDelete, setMemberToDelete] = useState<User | null>(null);
   const [memberToEditInitials, setMemberToEditInitials] = useState<User | null>(null);
   const [initialsDialogOpen, setInitialsDialogOpen] = useState(false);
+  const [memberToEditName, setMemberToEditName] = useState<User | null>(null);
+  const [nameDialogOpen, setNameDialogOpen] = useState(false);
   const [deadlineDay, setDeadlineDay] = useState(20); // Default to 20th
   const [emailAddress, setEmailAddress] = useState("");
   const [isSendingEmail, setIsSendingEmail] = useState(false);
@@ -838,6 +948,31 @@ export default function AdminPage() {
     },
   });
   
+  // Name update mutation
+  const updateNameMutation = useMutation({
+    mutationFn: async ({ userId, firstName, lastName }: { userId: number, firstName: string, lastName: string }) => {
+      const res = await apiRequest("PATCH", `/api/admin/members/${userId}/name`, { firstName, lastName });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      setNameDialogOpen(false);
+      setMemberToEditName(null);
+      toast({
+        title: "Success",
+        description: "Member name updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update name",
+        variant: "destructive",
+      });
+    },
+  });
+  
   // Handle edit initials
   const handleEditInitials = (member: User) => {
     setMemberToEditInitials(member);
@@ -847,6 +982,17 @@ export default function AdminPage() {
   // Handle save initials
   const handleSaveInitials = (userId: number, initials: string) => {
     updateInitialsMutation.mutate({ userId, initials });
+  };
+  
+  // Handle edit name
+  const handleEditName = (member: User) => {
+    setMemberToEditName(member);
+    setNameDialogOpen(true);
+  };
+  
+  // Handle save name
+  const handleSaveName = (userId: number, firstName: string, lastName: string) => {
+    updateNameMutation.mutate({ userId, firstName, lastName });
   };
 
   const handleDeleteMember = (member: User) => {
