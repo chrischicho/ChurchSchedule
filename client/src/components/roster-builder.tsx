@@ -256,76 +256,79 @@ export function RosterBuilder() {
   const confirmClearAssignments = async () => {
     if (selectedSunday) {
       try {
-        // Try manual fetch first to see if we can get more error details
+        // Let's do a comprehensive check to understand what's happening
+        setIsConfirmDialogOpen(false); // Close dialog first
+        
         const year = selectedSunday.date.getFullYear();
         const month = selectedSunday.date.getMonth() + 1; // Adjusting for 0-indexed months
         const day = selectedSunday.date.getDate();
         
-        console.log(`Manually clearing assignments for date: ${year}-${month}-${day}`);
+        console.log(`=== DEBUG: Clearing assignments for date: ${year}-${month}-${day} ===`);
+        console.log("Sunday Data:", selectedSunday);
+        console.log("Existing assignments:", selectedSunday.assignments);
         
-        const response = await fetch(`/api/admin/roster-assignments/date/${year}/${month}/${day}`, {
-          method: 'DELETE',
-          credentials: 'include',
-          headers: {
-            'Accept': 'application/json'
-          }
-        });
-        
-        console.log("Response status:", response.status);
-        console.log("Response status text:", response.statusText);
-        
-        // Check response headers
-        const contentType = response.headers.get('content-type');
-        console.log("Content-Type:", contentType);
-        
-        if (response.ok) {
-          // If the response is successful, try to read the body if there is one
-          if (contentType && contentType.includes('application/json')) {
-            const jsonData = await response.json();
-            console.log("Response data:", jsonData);
-          } else {
-            console.log("No JSON response body");
-          }
+        // First, check if there are any existing assignments in the database for this date
+        // If not, we can just show success without calling the API
+        if (selectedSunday.assignments.length === 0 && Object.keys(selectedAssignments).length === 0) {
+          console.log("No assignments to clear - skipping API call");
           
-          // Manually update the UI and cache
+          toast({
+            title: "No assignments to clear",
+            description: "There were no saved assignments for this date.",
+          });
+          return;
+        }
+        
+        // Now try the deletion API call
+        try {
+          console.log(`Making DELETE request to: /api/admin/roster-assignments/date/${year}/${month}/${day}`);
+          
+          // Use apiRequest from queryClient instead of fetch directly
+          const result = await apiRequest(
+            `/api/admin/roster-assignments/date/${year}/${month}/${day}`, 
+            { method: 'DELETE' }
+          );
+          
+          console.log("Clear assignments success:", result);
+          
+          // Update the UI and invalidate caches
           queryClient.invalidateQueries({ 
             queryKey: ['/api/roster-builder/available-sundays', currentMonth.getFullYear(), currentMonth.getMonth() + 1] 
           });
           queryClient.invalidateQueries({ 
             queryKey: ['/api/roster-assignments/month', currentMonth.getFullYear(), currentMonth.getMonth() + 1] 
           });
+          
+          // Clear selected assignments
           setSelectedAssignments({});
+          
+          // Show success toast
           toast({
             title: "Assignments cleared",
             description: "All assignments for this date have been removed.",
           });
-          setIsConfirmDialogOpen(false);
-        } else {
-          // If there was an error, try to read error details
-          let errorMessage = "Failed to clear assignments";
-          try {
-            if (contentType && contentType.includes('application/json')) {
-              const errorData = await response.json();
-              errorMessage = errorData.message || errorMessage;
-            }
-          } catch (e) {
-            console.error("Error parsing error response:", e);
-          }
+        } catch (apiError: any) {
+          console.error("API Error in clear assignments:", apiError);
           
-          console.error("Error clearing assignments:", errorMessage);
+          // Try to extract nested error information
+          const errorMessage = apiError?.message || 
+                            apiError?.error?.message || 
+                            "Failed to clear assignments";
+          
           toast({
             title: "Error clearing assignments",
             description: errorMessage,
             variant: "destructive",
           });
-          setIsConfirmDialogOpen(false);
         }
-      } catch (error) {
-        // This is for network errors or other exceptions
-        console.error("Exception in manual clear:", error);
+      } catch (error: any) {
+        // This is for any unexpected errors
+        console.error("Unexpected error in clearAssignments:", error);
+        console.error("Error stack:", error?.stack);
+        
         toast({
           title: "Error clearing assignments",
-          description: "A network error occurred. Please try again.",
+          description: "An unexpected error occurred. Please try again.",
           variant: "destructive",
         });
         setIsConfirmDialogOpen(false);

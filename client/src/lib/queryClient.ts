@@ -8,19 +8,48 @@ async function throwIfResNotOk(res: Response) {
 }
 
 export async function apiRequest(
-  method: string,
   url: string,
-  data?: unknown | undefined,
-): Promise<Response> {
-  const res = await fetch(url, {
-    method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-  });
+  options: {
+    method: string;
+    data?: unknown;
+  } = { method: 'GET' }
+): Promise<any> {
+  try {
+    console.log(`API Request: ${options.method} ${url}`, options.data || '');
+    
+    const res = await fetch(url, {
+      method: options.method,
+      headers: options.data ? { "Content-Type": "application/json" } : {},
+      body: options.data ? JSON.stringify(options.data) : undefined,
+      credentials: "include",
+    });
 
-  await throwIfResNotOk(res);
-  return res;
+    console.log(`API Response status: ${res.status} ${res.statusText}`);
+    
+    await throwIfResNotOk(res);
+    
+    // If no content, return an empty object
+    if (res.status === 204 || res.headers.get('content-length') === '0') {
+      console.log('No content in response');
+      return { success: true };
+    }
+    
+    // Check content type to determine how to parse the response
+    const contentType = res.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      const json = await res.json();
+      console.log('API Response data:', json);
+      return json;
+    }
+    
+    // Default to text response
+    const text = await res.text();
+    console.log('API Response text:', text);
+    return { success: true, text };
+  } catch (error) {
+    console.error(`API Request Error for ${url}:`, error);
+    throw error;
+  }
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
