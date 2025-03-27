@@ -238,7 +238,9 @@ export function RosterBuilder() {
       assignedCount += selectedAssignments[roleId].length;
     }
     
-    return assignedCount >= maxAllowed;
+    // When we're exactly at the limit, still allow clicking to select
+    // The notice will only show when trying to exceed the limit
+    return assignedCount > maxAllowed;
   };
 
   // Handle role assignment
@@ -279,12 +281,17 @@ export function RosterBuilder() {
       return;
     }
     
-    // Check if role has reached max limit and this would be a new assignment
-    if (isRoleFull(roleId, roleName)) {
-      const limit = ROLE_LIMITS[roleName] || 1;
+    // Get the current count and max limit for this role
+    const currentAssignedCount = selectedAssignments[roleId]?.length || 0;
+    const existingDatabaseCount = selectedSunday?.assignments.filter(a => a.roleId === roleId).length || 0;
+    const totalCurrentCount = currentAssignedCount + existingDatabaseCount;
+    const maxLimit = ROLE_LIMITS[roleName] || 1;
+    
+    // Only show warning when trying to exceed the limit (not when exactly at the limit)
+    if (totalCurrentCount >= maxLimit) {
       toast({
-        title: `Maximum ${roleName}s Reached`,
-        description: `You can only assign up to ${limit} people as ${roleName}. 
+        title: `Maximum ${roleName} Limit Exceeded`,
+        description: `You can only assign up to ${maxLimit} ${roleName}${maxLimit > 1 ? 's' : ''}. 
                       Please remove an existing ${roleName} before adding a new one.`,
         variant: "destructive",
       });
@@ -644,15 +651,8 @@ export function RosterBuilder() {
                           </TooltipProvider>
                         </div>
                         
-                        {/* Show role limit indicator */}
-                        {isRoleFull(role.id, role.name) && (
-                          <Alert className="mt-2 mb-2" variant="destructive">
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertDescription className="text-xs">
-                              Maximum of {ROLE_LIMITS[role.name] || 1} {role.name}{ROLE_LIMITS[role.name] > 1 ? "s" : ""} reached
-                            </AlertDescription>
-                          </Alert>
-                        )}
+                        {/* The role limit indicator is no longer shown by default, 
+                            it will only be shown via a toast when the user tries to exceed the limit */}
                         
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mt-3">
                           {selectedSunday.availablePeople.map(person => {
@@ -686,7 +686,6 @@ export function RosterBuilder() {
                                   className={`
                                     border rounded-md p-2 text-sm cursor-pointer relative
                                     ${selectedAssignments[role.id]?.includes(person.id) ? 'bg-primary/20 border-primary' : 'hover:bg-muted/50'}
-                                    ${isRoleFull(role.id, role.name) && !(selectedAssignments[role.id]?.includes(person.id)) ? 'opacity-50 cursor-not-allowed' : ''}
                                   `}
                                   onClick={() => handleAssignRole(role.id, person.id, role.name)}
                                 >
