@@ -59,6 +59,7 @@ export interface IStorage {
   reorderServiceRoles(roleIds: number[]): Promise<ServiceRole[]>;
   
   // Roster Assignment operations
+  getAllRosterAssignments(): Promise<RosterAssignment[]>;
   getRosterAssignmentsForDate(date: Date): Promise<RosterAssignment[]>;
   getRosterAssignmentsForMonth(year: number, month: number): Promise<RosterAssignment[]>;
   getRosterAssignmentsWithUserData(year: number, month: number): Promise<any[]>;  // Returns assignments with user and role data

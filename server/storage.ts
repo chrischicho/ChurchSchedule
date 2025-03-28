@@ -561,6 +561,16 @@ export class DatabaseStorage implements IStorage {
   }
   
   // Roster Assignment operations
+  async getAllRosterAssignments(): Promise<RosterAssignment[]> {
+    try {
+      const assignments = await db.select().from(rosterAssignments);
+      return assignments;
+    } catch (err) {
+      console.error("Error fetching all roster assignments:", err);
+      throw new Error("Failed to fetch all roster assignments");
+    }
+  }
+  
   async getRosterAssignmentsForDate(date: Date): Promise<RosterAssignment[]> {
     const dateStr = date.toISOString().split('T')[0];
     
