@@ -756,6 +756,22 @@ export default function AdminPage() {
   const [viewType, setViewType] = useState<"card" | "simple" | "roles">("card");
   const [availableMonths, setAvailableMonths] = useState<Date[]>([]);
   
+  // Get all roster assignments to determine available months
+  const { data: rosterAssignments } = useQuery({
+    queryKey: ['/api/roster-assignments'],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/roster-assignments/all', {
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        console.error('Failed to fetch all roster assignments');
+        return [];
+      }
+      return response.json();
+    },
+    enabled: !!user?.isAdmin, // Only run for admins
+  });
+  
   // State for service roster sending
   const [rosterMonth, setRosterMonth] = useState<Date>(new Date());
   const [isSendingRoster, setIsSendingRoster] = useState(false);
@@ -907,6 +923,44 @@ export default function AdminPage() {
       }
     }
   }, [availability, selectedMonth]);
+  
+  // Process roster assignments to get months with assignments for the service roster dropdown
+  useEffect(() => {
+    if (rosterAssignments && Array.isArray(rosterAssignments)) {
+      // Get months with roster assignments
+      const months = new Set<string>();
+      
+      // Extract all unique months from assignments
+      rosterAssignments.forEach(assignment => {
+        const date = new Date(assignment.serviceDate);
+        const monthYear = format(date, 'yyyy-MM'); // Format as YYYY-MM for uniqueness
+        months.add(monthYear);
+      });
+      
+      // Convert to Date objects (first day of each month)
+      const monthDates = Array.from(months).map(monthStr => {
+        const [year, month] = monthStr.split('-').map(Number);
+        return new Date(year, month - 1, 1); // Month is 0-indexed in JS Date
+      });
+      
+      // Sort by date (newest first)
+      monthDates.sort((a, b) => b.getTime() - a.getTime());
+      
+      if (monthDates.length > 0) {
+        // Update months with assignments for the dropdown
+        setAvailableMonths(monthDates);
+        
+        // If rosterMonth is not set or not in the list, set it to the most recent month
+        const rosterMonthStr = format(rosterMonth, 'yyyy-MM');
+        const hasRosterMonth = Array.from(months).includes(rosterMonthStr);
+        
+        if (!hasRosterMonth) {
+          // Set to the most recent month (first in the sorted array since we sort descending)
+          setRosterMonth(monthDates[0]);
+        }
+      }
+    }
+  }, [rosterAssignments, rosterMonth]);
 
   const createMemberMutation = useMutation({
     mutationFn: async (data: { firstName: string; lastName: string }) => {
@@ -1655,25 +1709,35 @@ export default function AdminPage() {
                   <div className="mt-4">
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Month</label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="w-full justify-start text-left font-normal"
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
+                      <Select
+                        value={format(rosterMonth, "yyyy-MM")}
+                        onValueChange={(value) => {
+                          const [year, month] = value.split('-').map(Number);
+                          setRosterMonth(new Date(year, month - 1, 1));
+                        }}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select month">
                             {format(rosterMonth, "MMMM yyyy")}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                          <Calendar
-                            mode="single"
-                            selected={rosterMonth}
-                            onSelect={(date) => date && setRosterMonth(date)}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableMonths.length > 0 ? (
+                            availableMonths.map((date) => (
+                              <SelectItem 
+                                key={format(date, "yyyy-MM")} 
+                                value={format(date, "yyyy-MM")}
+                              >
+                                {format(date, "MMMM yyyy")}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value={format(new Date(), "yyyy-MM")}>
+                              {format(new Date(), "MMMM yyyy")}
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 </div>

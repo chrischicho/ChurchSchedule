@@ -13,7 +13,8 @@ import {
   insertRosterAssignmentSchema,
   updateProfileSchema,
   updateMemberNameSchema,
-  Verse
+  Verse,
+  RosterAssignment
 } from "@shared/schema";
 import nodemailer from "nodemailer";
 import { renderToBuffer } from "@react-pdf/renderer";
@@ -838,6 +839,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Roster Assignment endpoints
+  app.get("/api/admin/roster-assignments/all", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user.isAdmin) return res.sendStatus(403);
+    
+    try {
+      const assignments = await storage.getAllRosterAssignments();
+      res.json(assignments);
+    } catch (err) {
+      console.error("Error fetching all roster assignments:", err);
+      res.status(500).json({ message: "Failed to fetch all roster assignments" });
+    }
+  });
+  
+  app.get("/api/admin/roster-assignments/months", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user.isAdmin) return res.sendStatus(403);
+    
+    try {
+      // Get all assignments
+      const assignments = await storage.getAllRosterAssignments();
+      
+      // Extract unique months from assignments
+      const months = new Set<string>();
+      assignments.forEach((assignment: RosterAssignment) => {
+        const date = new Date(assignment.serviceDate);
+        const monthYear = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        months.add(monthYear);
+      });
+      
+      // Convert to array of month objects
+      const monthsArray = Array.from(months).map(monthStr => {
+        const [year, month] = monthStr.split('-').map(Number);
+        return {
+          year,
+          month,
+          date: new Date(year, month - 1, 1).toISOString()
+        };
+      });
+      
+      // Sort by date (most recent first)
+      monthsArray.sort((a, b) => {
+        const dateA = new Date(a.year, a.month - 1, 1);
+        const dateB = new Date(b.year, b.month - 1, 1);
+        return dateB.getTime() - dateA.getTime();
+      });
+      
+      res.json(monthsArray);
+    } catch (err) {
+      console.error("Error fetching roster assignment months:", err);
+      res.status(500).json({ message: "Failed to fetch roster assignment months" });
+    }
+  });
+  
   app.get("/api/roster-assignments/month/:year/:month", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
