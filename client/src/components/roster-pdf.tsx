@@ -391,10 +391,7 @@ export function RosterPDF({ month, rosterData, serviceRoster, viewType = "card",
                       {Object.entries(rolesForDate).map(([roleName, users], index) => (
                         <View 
                           key={`${isoDateStr}-${roleName}`} 
-                          style={[
-                            roleStyles.roleRow,
-                            index % 2 === 1 ? roleStyles.roleAltRow : {}
-                          ]}
+                          style={roleStyles.roleRow}
                         >
                           <Text style={roleStyles.roleNameCell}>
                             {roleName}
