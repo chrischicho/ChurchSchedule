@@ -283,76 +283,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email address is required" });
       }
 
-      // Get roster data
-      const availabilityRecords = await storage.getAvailability();
-      console.log("Total availability records:", availabilityRecords.length);
-      console.log("Available records:", availabilityRecords.filter(r => r.isAvailable).length);
-      
       // Use the selected month or default to current month
       const selectedMonth = month ? new Date(month) : new Date();
-      console.log("Selected month:", selectedMonth.toISOString());
+      console.log("Selected month for service roster:", selectedMonth.toISOString());
       
-      const allUsers = await storage.getAllUsers();
-      console.log("Total users:", allUsers.length);
+      // Get actual roster assignments with user and role data
+      const assignments = await storage.getRosterAssignmentsWithUserData(
+        selectedMonth.getFullYear(), 
+        selectedMonth.getMonth() + 1
+      );
       
-      // Group users by service date
-      const rosterData: { [key: string]: User[] } = {};
+      console.log("Total roster assignments found:", assignments.length);
       
-      // Process availability records
-      for (const record of availabilityRecords) {
-        // Only include available users
-        if (!record.isAvailable) continue;
+      // Group assignments by service date and role
+      const serviceRoster: { 
+        [dateStr: string]: { 
+          [roleName: string]: User[] 
+        } 
+      } = {};
+      
+      // Process assignments to build the service roster
+      assignments.forEach(assignment => {
+        // Skip if missing required data
+        if (!assignment.user || !assignment.role) return;
         
-        // Make sure we're working with proper Date objects
-        const serviceDate = new Date(record.serviceDate);
+        // Format date consistently for lookup
+        const serviceDate = new Date(assignment.serviceDate);
+        const dateStr = serviceDate.toISOString();
         
-        // Use ISO string for consistent key format
-        const isoDateStr = serviceDate.toISOString();
-        
-        if (!rosterData[isoDateStr]) {
-          rosterData[isoDateStr] = [];
+        // Initialize date entry if needed
+        if (!serviceRoster[dateStr]) {
+          serviceRoster[dateStr] = {};
         }
         
-        // Find the corresponding user
-        const user = allUsers.find(u => u.id === record.userId);
-        if (user) {
-          rosterData[isoDateStr].push(user);
+        // Initialize role entry if needed
+        const roleName = assignment.role.name;
+        if (!serviceRoster[dateStr][roleName]) {
+          serviceRoster[dateStr][roleName] = [];
         }
-      }
-      
-      console.log("Service dates with available users:", Object.keys(rosterData).length);
-      
-      // Filter availability records for the selected month
-      const filteredRosterData: { [key: string]: User[] } = {};
-      const selectedMonthStr = selectedMonth.getMonth();
-      const selectedYearStr = selectedMonth.getFullYear();
-      
-      console.log("Filtering for month:", selectedMonthStr, "year:", selectedYearStr);
-      
-      // Filter out service dates that don't match the selected month
-      Object.entries(rosterData).forEach(([isoDateStr, users]) => {
-        const date = new Date(isoDateStr);
-        console.log("Checking date:", format(date, "yyyy-MM-dd"), "Month:", date.getMonth(), "Year:", date.getFullYear());
         
-        if (date.getMonth() === selectedMonthStr && date.getFullYear() === selectedYearStr) {
-          // Keep using ISO string format consistently
-          filteredRosterData[isoDateStr] = users;
-          console.log("Added date", format(date, "yyyy-MM-dd"), "with", users.length, "users");
-        }
+        // Add user to assigned role
+        serviceRoster[dateStr][roleName].push(assignment.user);
       });
+      
+      console.log("Service dates with assignments:", Object.keys(serviceRoster).length);
       
       // Get a random verse for the PDF
       const verse = await storage.getRandomVerse('serving');
       
       // Create the PDF document with our data
-      console.log("Final filteredRosterData:", JSON.stringify(filteredRosterData));
+      console.log("Creating PDF with service roster data");
       
-      const rosterPDFElement = createElement(RosterPDF, { 
+      // Create PDF element with explicit type casting for typescript compatibility
+      const pdfProps = { 
         month: selectedMonth, 
-        rosterData: filteredRosterData,
-        viewType: viewType || "card",
+        serviceRoster: serviceRoster,
+        viewType: "roles" as "roles", // Use type assertion for viewType
         verse: verse
-      });
+      };
+      
+      const rosterPDFElement = createElement(RosterPDF, pdfProps) as any;
       
       // Generate PDF buffer from the component
       const pdfBuffer = await renderToBuffer(rosterPDFElement);

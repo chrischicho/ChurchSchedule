@@ -104,14 +104,21 @@ const styles = StyleSheet.create({
 
 interface RosterPDFProps {
   month: Date;
-  rosterData: {
+  // Standard availability-based roster data (legacy format)
+  rosterData?: {
     [key: string]: User[];
   };
-  viewType?: "card" | "simple";
+  // New service role-based roster data
+  serviceRoster?: {
+    [dateStr: string]: {
+      [roleName: string]: User[];
+    }
+  };
+  viewType?: "card" | "simple" | "roles";
   verse?: Verse;
 }
 
-export function RosterPDF({ month, rosterData, viewType = "card", verse, ...props }: RosterPDFProps & React.ComponentProps<typeof Document>) {
+export function RosterPDF({ month, rosterData, serviceRoster, viewType = "card", verse, ...props }: RosterPDFProps & React.ComponentProps<typeof Document>) {
   // Sort users consistently by last name, then first name
   const sortUsers = (a: User, b: User) => {
     const lastNameCompare = a.lastName.localeCompare(b.lastName);
@@ -120,25 +127,101 @@ export function RosterPDF({ month, rosterData, viewType = "card", verse, ...prop
       : a.firstName.localeCompare(b.firstName);
   };
   
-  // Convert date strings to Date objects for sorting and create a new object with proper date keys
-  const processedRosterData: { [key: string]: User[] } = {};
+  // Define data structures for different view types
+  let processedRosterData: { [key: string]: User[] } = {};
+  let processedServiceRoster: { 
+    [normalizedDateStr: string]: { 
+      [roleName: string]: User[]
+    } 
+  } = {};
   
-  // Process the roster data with consistent date handling
-  Object.entries(rosterData).forEach(([dateStr, users]) => {
-    // Ensure we have a proper Date object
-    const dateObj = new Date(dateStr);
-    // Use a consistent date string format for keys
-    const normalizedDateStr = dateObj.toISOString();
-    processedRosterData[normalizedDateStr] = users;
-  });
+  // Get dates and normalize them for consistent handling
+  let sortedDates: Date[] = [];
   
-  // Get sorted dates for display
-  const sortedDates = Object.keys(processedRosterData)
-    .map(date => new Date(date))
-    .sort((a, b) => a.getTime() - b.getTime());
+  if (viewType === "roles" && serviceRoster) {
+    // Process service roster data with roles
+    Object.entries(serviceRoster).forEach(([dateStr, roleAssignments]) => {
+      const dateObj = new Date(dateStr);
+      const normalizedDateStr = dateObj.toISOString();
+      
+      processedServiceRoster[normalizedDateStr] = roleAssignments;
+    });
+    
+    // Get sorted dates for service roster
+    sortedDates = Object.keys(processedServiceRoster)
+      .map(date => new Date(date))
+      .sort((a, b) => a.getTime() - b.getTime());
+  } else if (rosterData) {
+    // Process regular roster data (availability-based)
+    Object.entries(rosterData).forEach(([dateStr, users]) => {
+      const dateObj = new Date(dateStr);
+      const normalizedDateStr = dateObj.toISOString();
+      processedRosterData[normalizedDateStr] = users;
+    });
+    
+    // Get sorted dates for regular roster
+    sortedDates = Object.keys(processedRosterData)
+      .map(date => new Date(date))
+      .sort((a, b) => a.getTime() - b.getTime());
+  }
   
   // Format for display in the roster
   const formatName = (user: User) => `${user.firstName} ${user.lastName}`;
+
+  // Add role-specific styles
+  const roleStyles = StyleSheet.create({
+    roleSection: {
+      marginBottom: 15,
+    },
+    roleName: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: '#444444',
+      marginBottom: 5,
+      paddingBottom: 3,
+      borderBottomWidth: 1,
+      borderBottomColor: '#eeeeee',
+    },
+    roleUsers: {
+      marginLeft: 15,
+    },
+    roleUser: {
+      fontSize: 12,
+      marginBottom: 3,
+      color: '#555555',
+    },
+    noRoleUsers: {
+      fontSize: 11,
+      fontStyle: 'italic',
+      color: '#888888',
+      marginLeft: 15,
+      marginBottom: 5,
+    },
+    // Roles table view
+    roleTable: {
+      marginTop: 10,
+      marginBottom: 20,
+    },
+    roleRow: {
+      flexDirection: 'row',
+      paddingVertical: 6,
+      borderBottomWidth: 1,
+      borderBottomColor: '#eeeeee',
+    },
+    roleNameCell: {
+      flex: 1,
+      fontSize: 12,
+      fontWeight: 'bold',
+      color: '#444444',
+      paddingHorizontal: 5,
+    },
+    roleUsersCell: {
+      flex: 2,
+      fontSize: 11,
+      color: '#555555',
+      paddingHorizontal: 5,
+    },
+  });
 
   return (
     <Document {...props}>
@@ -150,8 +233,51 @@ export function RosterPDF({ month, rosterData, viewType = "card", verse, ...prop
         </Text>
         <Text style={styles.copyright}>ElGibbor IFC ©</Text>
 
-        {viewType === "card" ? (
-          // Card View
+        {viewType === "roles" ? (
+          // Roles View - for service assignments
+          <>
+            {sortedDates.map(date => {
+              const isoDateStr = date.toISOString();
+              const rolesForDate = processedServiceRoster[isoDateStr] || {};
+              const hasAssignments = Object.keys(rolesForDate).length > 0;
+              
+              return (
+                <View key={isoDateStr} style={styles.section}>
+                  <Text style={styles.serviceDate}>
+                    {format(date, "EEEE, MMMM d, yyyy")}
+                  </Text>
+                  
+                  {hasAssignments ? (
+                    <View style={roleStyles.roleTable}>
+                      {/* Role assignments */}
+                      {Object.entries(rolesForDate).map(([roleName, users], index) => (
+                        <View key={`${isoDateStr}-${roleName}`} style={roleStyles.roleRow}>
+                          <Text style={roleStyles.roleNameCell}>{roleName}:</Text>
+                          <Text style={roleStyles.roleUsersCell}>
+                            {users.length > 0 
+                              ? users.sort(sortUsers).map(user => formatName(user)).join(", ")
+                              : "(Unassigned)"
+                            }
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : (
+                    <Text style={styles.noMembers}>No role assignments for this date</Text>
+                  )}
+                </View>
+              );
+            })}
+            
+            {/* Display verse at the bottom */}
+            {verse && (
+              <View style={{ marginTop: 20, padding: 10 }}>
+                <PDFVerse verse={verse} />
+              </View>
+            )}
+          </>
+        ) : viewType === "card" ? (
+          // Card View - for availability
           <>
             {sortedDates.map(date => {
               const isoDateStr = date.toISOString();
@@ -187,7 +313,7 @@ export function RosterPDF({ month, rosterData, viewType = "card", verse, ...prop
             )}
           </>
         ) : (
-          // Simple View (Table)
+          // Simple View (Table) - for availability
           <View style={styles.section}>
             <View style={[styles.tableRow, styles.tableHeader]}>
               <Text style={styles.dateCell}>Service Date</Text>
