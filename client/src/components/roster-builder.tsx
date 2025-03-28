@@ -260,6 +260,15 @@ export function RosterBuilder() {
 
   // Handle role assignment
   const handleAssignRole = (roleId: number, userId: number, roleName: string) => {
+    // Don't allow assignment if roster is finalized (defensive programming)
+    if (isRosterFinalized) {
+      toast({
+        title: "Roster is Finalized",
+        description: "You need to click 'Revise Roster' before making changes.",
+        variant: "destructive"
+      });
+      return;
+    }
     // Check if this person is already assigned to this role, and if so, unassign them
     if (selectedAssignments[roleId]?.includes(userId)) {
       setSelectedAssignments(prev => {
@@ -890,7 +899,7 @@ export function RosterBuilder() {
                       variant="destructive" 
                       size="sm"
                       onClick={handleClearAssignments}
-                      disabled={selectedSunday.assignments.length === 0 && Object.keys(selectedAssignments).length === 0}
+                      disabled={isRosterFinalized || (selectedSunday.assignments.length === 0 && Object.keys(selectedAssignments).length === 0)}
                     >
                       <Trash2 className="h-4 w-4 mr-1" />
                       Clear All
@@ -898,7 +907,7 @@ export function RosterBuilder() {
                     <Button
                       size="sm"
                       onClick={handleSaveAssignments}
-                      disabled={Object.keys(selectedAssignments).length === 0}
+                      disabled={isRosterFinalized || Object.keys(selectedAssignments).length === 0}
                     >
                       <Save className="h-4 w-4 mr-1" />
                       Save
@@ -907,7 +916,15 @@ export function RosterBuilder() {
                 </div>
               </CardHeader>
               <CardContent>
-                <h3 className="font-medium mb-2">Assign People to Roles</h3>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-medium">Assign People to Roles</h3>
+                  {isRosterFinalized && (
+                    <Badge variant="outline" className="flex items-center space-x-1">
+                      <Lock className="h-3 w-3 mr-1" />
+                      <span>Locked</span>
+                    </Badge>
+                  )}
+                </div>
                 
                 {selectedSunday.roles.length > 0 ? (
                   <div className="space-y-4">
@@ -996,10 +1013,11 @@ export function RosterBuilder() {
                                 <div
                                   key={`${role.id}-${person.id}`}
                                   className={`
-                                    border rounded-md p-2 text-sm cursor-pointer relative
-                                    ${selectedAssignments[role.id]?.includes(person.id) ? 'bg-primary/20 border-primary' : 'hover:bg-muted/50'}
+                                    border rounded-md p-2 text-sm relative
+                                    ${isRosterFinalized ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'} 
+                                    ${selectedAssignments[role.id]?.includes(person.id) ? 'bg-primary/20 border-primary' : isRosterFinalized ? '' : 'hover:bg-muted/50'}
                                   `}
-                                  onClick={() => handleAssignRole(role.id, person.id, role.name)}
+                                  onClick={() => !isRosterFinalized && handleAssignRole(role.id, person.id, role.name)}
                                 >
                                   <p className="font-medium truncate">{person.formattedName}</p>
                                   <p className="text-xs text-muted-foreground truncate">{person.initials}</p>
