@@ -1216,7 +1216,7 @@ export default function AdminPage() {
       await sendRosterEmailMutation.mutateAsync({ 
         email: emailAddress,
         month: format(rosterMonth, "yyyy-MM-dd"),
-        viewType: viewType
+        viewType: "roles" // Always use roles view for service roster
       });
     } finally {
       setIsSendingRoster(false);
@@ -1648,7 +1648,7 @@ export default function AdminPage() {
                     </Button>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <div className="mt-4">
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Month</label>
                       <Popover>
@@ -1670,23 +1670,6 @@ export default function AdminPage() {
                           />
                         </PopoverContent>
                       </Popover>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Format</label>
-                      <Select
-                        value={viewType}
-                        onValueChange={(value) => 
-                          setViewType(value as "card" | "simple")
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select format" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="card">Card View</SelectItem>
-                          <SelectItem value="simple">Simple View</SelectItem>
-                        </SelectContent>
-                      </Select>
                     </div>
                   </div>
                 </div>
