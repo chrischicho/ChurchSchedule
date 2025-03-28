@@ -613,8 +613,19 @@ export function RosterBuilder() {
 
   // Define the different roster states we need to handle
   const rosterExists = finalizedRoster !== null && finalizedRoster !== undefined;
-  const isRosterFinalized = rosterExists && finalizedRoster.isFinalized === true;
-  const isRosterDraft = rosterExists && !finalizedRoster.isFinalized;
+  // Add console log to debug the actual values we're getting
+  console.log("Finalized Roster Data:", finalizedRoster);
+  
+  const isRosterFinalized = rosterExists && finalizedRoster?.isFinalized === true;
+  const isRosterDraft = rosterExists && finalizedRoster?.isFinalized === false;
+  
+  // Log the state variables for debugging
+  console.log("Roster State:", { 
+    rosterExists, 
+    isRosterFinalized, 
+    isRosterDraft,
+    isFinalized: finalizedRoster?.isFinalized 
+  });
   
   // Define what actions should be shown based on roster state
   const showFinalizeButton = !isRosterFinalized;
