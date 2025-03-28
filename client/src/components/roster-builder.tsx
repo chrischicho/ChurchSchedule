@@ -611,7 +611,7 @@ export function RosterBuilder() {
     retry: false
   });
 
-  const isRosterFinalized = finalizedRoster !== null && finalizedRoster !== undefined;
+  const isRosterFinalized = finalizedRoster !== null && finalizedRoster !== undefined && finalizedRoster.isFinalized === true;
 
   if (isSundaysLoading) {
     return <LoaderOverlay isLoading={true} type="calendar" loadingText="Loading roster data..." />;
