@@ -7,6 +7,7 @@ import {
   SpecialDay, InsertSpecialDay,
   ServiceRole, InsertServiceRole,
   RosterAssignment, InsertRosterAssignment,
+  FinalizedRoster, InsertFinalizedRoster,
   UpdateProfile
 } from "@shared/schema";
 
@@ -70,4 +71,10 @@ export interface IStorage {
   
   // Roster Builder Helper methods
   getAvailableSundaysWithPeople(year: number, month: number): Promise<any[]>;  // Returns Sundays with available people
+  
+  // Finalized roster operations
+  getFinalizedRoster(year: number, month: number): Promise<FinalizedRoster | undefined>;
+  finalizeRoster(data: InsertFinalizedRoster): Promise<FinalizedRoster>;
+  unfinalizeRoster(year: number, month: number): Promise<void>;
+  getAllFinalizedRosters(): Promise<FinalizedRoster[]>;
 }
