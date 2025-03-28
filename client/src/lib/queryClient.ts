@@ -8,12 +8,25 @@ async function throwIfResNotOk(res: Response) {
 }
 
 export async function apiRequest(
-  url: string,
-  options: {
+  urlOrOptions: string | {
     method: string;
     data?: unknown;
-  } = { method: 'GET' }
+  },
+  urlIfOptionsProvided?: string
 ): Promise<any> {
+  let url: string;
+  let options: { method: string; data?: unknown; };
+  
+  // Handle both call patterns:
+  // 1. apiRequest(url, { method, data })
+  // 2. apiRequest({ method, data }, url)
+  if (typeof urlOrOptions === 'string') {
+    url = urlOrOptions;
+    options = urlIfOptionsProvided as any || { method: 'GET' };
+  } else {
+    options = urlOrOptions;
+    url = urlIfOptionsProvided as string;
+  }
   try {
     console.log(`API Request: ${options.method} ${url}`, options.data || '');
     

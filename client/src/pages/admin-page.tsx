@@ -8,6 +8,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -754,6 +755,10 @@ export default function AdminPage() {
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
   const [viewType, setViewType] = useState<"card" | "simple">("card");
   const [availableMonths, setAvailableMonths] = useState<Date[]>([]);
+  
+  // State for service roster sending
+  const [rosterMonth, setRosterMonth] = useState<Date>(new Date());
+  const [isSendingRoster, setIsSendingRoster] = useState(false);
   const [specialDayToEdit, setSpecialDayToEdit] = useState<SpecialDay | null>(null);
   const [specialDayToDelete, setSpecialDayToDelete] = useState<SpecialDay | null>(null);
   const [showSpecialDayDialog, setShowSpecialDayDialog] = useState(false);
@@ -784,7 +789,10 @@ export default function AdminPage() {
   const createSpecialDayMutation = useMutation({
     mutationFn: async (data: any) => {
       console.log("Creating special day with data:", data);
-      const res = await apiRequest("POST", "/api/admin/special-days", data);
+      const res = await apiRequest({
+        method: "POST",
+        data
+      }, "/api/admin/special-days");
       return res.json();
     },
     onSuccess: () => {
@@ -809,7 +817,10 @@ export default function AdminPage() {
   const updateSpecialDayMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number, data: any }) => {
       console.log(`Updating special day ${id} with data:`, data);
-      const res = await apiRequest("PATCH", `/api/admin/special-days/${id}`, data);
+      const res = await apiRequest({
+        method: "PATCH",
+        data
+      }, `/api/admin/special-days/${id}`);
       return res.json();
     },
     onSuccess: () => {
@@ -833,7 +844,9 @@ export default function AdminPage() {
   
   const deleteSpecialDayMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/admin/special-days/${id}`);
+      await apiRequest({
+        method: "DELETE"
+      }, `/api/admin/special-days/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/special-days"] });
@@ -899,7 +912,10 @@ export default function AdminPage() {
 
   const createMemberMutation = useMutation({
     mutationFn: async (data: { firstName: string; lastName: string }) => {
-      const res = await apiRequest("POST", "/api/admin/members", data);
+      const res = await apiRequest({
+        method: "POST",
+        data
+      }, "/api/admin/members");
       return res.json();
     },
     onSuccess: () => {
@@ -923,7 +939,9 @@ export default function AdminPage() {
 
   const deleteMemberMutation = useMutation({
     mutationFn: async (userId: number) => {
-      await apiRequest("DELETE", `/api/admin/members/${userId}`);
+      await apiRequest({
+        method: "DELETE"
+      }, `/api/admin/members/${userId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
@@ -944,7 +962,10 @@ export default function AdminPage() {
 
   const updateSettingsMutation = useMutation({
     mutationFn: async (data: { deadlineDay: number }) => {
-      const res = await apiRequest("POST", "/api/admin/settings", data);
+      const res = await apiRequest({
+        method: "POST",
+        data
+      }, "/api/admin/settings");
       return res.json();
     },
     onSuccess: () => {
@@ -966,7 +987,10 @@ export default function AdminPage() {
   // Initials update mutation
   const updateInitialsMutation = useMutation({
     mutationFn: async ({ userId, initials }: { userId: number, initials: string }) => {
-      const res = await apiRequest("PATCH", `/api/admin/members/${userId}/initials`, { initials });
+      const res = await apiRequest({
+        method: "PATCH",
+        data: { initials }
+      }, `/api/admin/members/${userId}/initials`);
       return res.json();
     },
     onSuccess: () => {
@@ -991,7 +1015,10 @@ export default function AdminPage() {
   // Name update mutation
   const updateNameMutation = useMutation({
     mutationFn: async ({ userId, firstName, lastName }: { userId: number, firstName: string, lastName: string }) => {
-      const res = await apiRequest("PATCH", `/api/admin/members/${userId}/name`, { firstName, lastName });
+      const res = await apiRequest({
+        method: "PATCH",
+        data: { firstName, lastName }
+      }, `/api/admin/members/${userId}/name`);
       return res.json();
     },
     onSuccess: () => {
@@ -1066,7 +1093,10 @@ export default function AdminPage() {
 
   const updateNameFormatMutation = useMutation({
     mutationFn: async (data: { format: string }) => {
-      const res = await apiRequest("POST", "/api/admin/name-format", data);
+      const res = await apiRequest({
+        method: "POST",
+        data
+      }, "/api/admin/name-format");
       return res.json();
     },
     onSuccess: () => {
@@ -1097,8 +1127,11 @@ export default function AdminPage() {
       month: string;
       viewType: "card" | "simple";
     }) => {
-      const res = await apiRequest("POST", "/api/admin/send-roster", data);
-      const result = await res.json();
+      const result = await apiRequest({
+        method: "POST", 
+        data
+      }, "/api/admin/send-roster");
+      
       // If there's an error message in the response, throw it
       if (result.error) {
         throw new Error(result.error);
@@ -1124,8 +1157,9 @@ export default function AdminPage() {
   
   const testEmailConfigMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("GET", "/api/admin/test-email");
-      return await res.json();
+      return await apiRequest({
+        method: "GET"
+      }, "/api/admin/test-email");
     },
     onSuccess: (data) => {
       if (data.success) {
@@ -1170,6 +1204,29 @@ export default function AdminPage() {
       });
     } finally {
       setIsSendingEmail(false);
+    }
+  };
+  
+  // Handler for sending service roster (assigned members)
+  const handleSendServiceRoster = async () => {
+    if (!emailAddress) {
+      toast({
+        title: "Error",
+        description: "Please enter an email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsSendingRoster(true);
+      await sendRosterEmailMutation.mutateAsync({ 
+        email: emailAddress,
+        month: format(rosterMonth, "yyyy-MM-dd"),
+        viewType: viewType
+      });
+    } finally {
+      setIsSendingRoster(false);
     }
   };
 
@@ -1452,7 +1509,7 @@ export default function AdminPage() {
                   </div>
                   
                   <p className="text-sm text-muted-foreground mt-4">
-                    The roster for {format(selectedMonth, "MMMM yyyy")} will be sent as a PDF attachment.
+                    The availability for {format(selectedMonth, "MMMM yyyy")} will be sent as a PDF attachment.
                   </p>
                 </div>
               </CardContent>
@@ -1565,6 +1622,83 @@ export default function AdminPage() {
             
             {/* Roster Builder */}
             <RosterBuilder />
+            
+            {/* Send Roster Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Send Service Roster</CardTitle>
+                <CardDescription>
+                  Send the actual service roster (assigned members) to the specified email address
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Email Address</label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="email"
+                      placeholder="Enter email address"
+                      value={emailAddress}
+                      onChange={(e) => setEmailAddress(e.target.value)}
+                    />
+                    <Button
+                      onClick={handleSendServiceRoster}
+                      disabled={isSendingRoster}
+                      className="whitespace-nowrap"
+                    >
+                      {isSendingRoster ? (
+                        <ChurchLoader type="mail" size="xs" className="mr-2" />
+                      ) : (
+                        <Mail className="h-4 w-4 mr-2" />
+                      )}
+                      Send
+                    </Button>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Month</label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-start text-left font-normal"
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {format(rosterMonth, "MMMM yyyy")}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={rosterMonth}
+                            onSelect={(date) => date && setRosterMonth(date)}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Format</label>
+                      <Select
+                        value={viewType}
+                        onValueChange={(value) => 
+                          setViewType(value as "card" | "simple")
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select format" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="card">Card View</SelectItem>
+                          <SelectItem value="simple">Simple View</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </main>
