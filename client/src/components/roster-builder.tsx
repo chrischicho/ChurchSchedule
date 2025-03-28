@@ -611,9 +611,15 @@ export function RosterBuilder() {
     retry: false
   });
 
-  // Check if a roster record exists and if it's currently finalized
+  // Define the different roster states we need to handle
   const rosterExists = finalizedRoster !== null && finalizedRoster !== undefined;
   const isRosterFinalized = rosterExists && finalizedRoster.isFinalized === true;
+  const isRosterDraft = rosterExists && !finalizedRoster.isFinalized;
+  
+  // Define what actions should be shown based on roster state
+  const showFinalizeButton = !isRosterFinalized;
+  const showReviseButton = isRosterFinalized;
+  const showRefinalize = isRosterDraft;
 
   if (isSundaysLoading) {
     return <LoaderOverlay isLoading={true} type="calendar" loadingText="Loading roster data..." />;
@@ -635,9 +641,14 @@ export function RosterBuilder() {
     <Dialog open={isFinalizeDialogOpen} onOpenChange={setIsFinalizeDialogOpen}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Finalize Roster for {format(currentMonth, 'MMMM yyyy')}</DialogTitle>
+          <DialogTitle>
+            {showRefinalize ? "Re-Finalize Roster" : "Finalize Roster"} 
+            for {format(currentMonth, 'MMMM yyyy')}
+          </DialogTitle>
           <DialogDescription>
-            Finalizing the roster will make it visible to all members. This should be done when all assignments for the month are completed.
+            {showRefinalize 
+              ? "Re-finalizing will publish your revised roster and make it visible to all members." 
+              : "Finalizing the roster will make it visible to all members. This should be done when all assignments for the month are completed."}
           </DialogDescription>
         </DialogHeader>
         
@@ -650,7 +661,9 @@ export function RosterBuilder() {
               id="message"
               value={finalizeMessage}
               onChange={(e) => setFinalizeMessage(e.target.value)}
-              placeholder="Add any notes about this month's roster..."
+              placeholder={showRefinalize 
+                ? "Explain the changes made to this roster..."
+                : "Add any notes about this month's roster..."}
               className="w-full min-h-[100px] px-3 py-2 text-sm rounded-md border border-input bg-transparent ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
             />
           </div>
@@ -667,12 +680,12 @@ export function RosterBuilder() {
             {finalizeRosterMutation.isPending ? (
               <>
                 <ChurchLoader type="church" size="xs" className="mr-2" />
-                Finalizing...
+                {showRefinalize ? "Re-Finalizing..." : "Finalizing..."}
               </>
             ) : (
               <>
                 <Lock className="h-4 w-4 mr-2" />
-                Finalize Roster
+                {showRefinalize ? "Re-Finalize Roster" : "Finalize Roster"}
               </>
             )}
           </Button>
@@ -695,27 +708,11 @@ export function RosterBuilder() {
                 <h4 className="font-medium text-green-800 dark:text-green-300">Roster Finalized</h4>
                 <p className="text-sm text-green-700 dark:text-green-400">
                   The roster for {format(currentMonth, 'MMMM yyyy')} has been finalized and is available to all members.
+                  {finalizedRoster?.message && (
+                    <span className="block mt-1 italic">{finalizedRoster.message}</span>
+                  )}
                 </p>
               </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleReviseRoster}
-                disabled={reviseRosterMutation.isPending}
-                className="border-green-300 text-green-700 hover:text-green-800 hover:bg-green-100 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-900/30"
-              >
-                {reviseRosterMutation.isPending ? (
-                  <>
-                    <ChurchLoader type="church" size="xs" className="mr-2" />
-                    Revising...
-                  </>
-                ) : (
-                  <>
-                    <Pencil className="h-4 w-4 mr-2" />
-                    Revise Roster
-                  </>
-                )}
-              </Button>
             </Alert>
           ) : (
             <Alert className="mb-6 bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-900">
@@ -723,7 +720,7 @@ export function RosterBuilder() {
               <div className="flex-1 ml-3">
                 <h4 className="font-medium text-amber-800 dark:text-amber-300">Roster in Draft Mode</h4>
                 <p className="text-sm text-amber-700 dark:text-amber-400">
-                  This roster was previously finalized but is now in draft mode. Make your changes and finalize it again when ready.
+                  You can now make changes to the assignments. Click "Re-Finalize Roster" when you're ready to publish changes.
                 </p>
               </div>
             </Alert>
@@ -757,26 +754,42 @@ export function RosterBuilder() {
             <ChevronRight className="h-4 w-4" />
           </Button>
           
-          {/* Finalize button */}
-          <Button
-            size="sm"
-            variant={isRosterFinalized ? "outline" : "default"}
-            onClick={handleFinalizeRoster}
-            disabled={isRosterFinalized || sundaysData?.length === 0}
-            className="ml-2"
-          >
-            {isRosterFinalized ? (
-              <>
-                <Check className="h-4 w-4 mr-1" />
-                Finalized
-              </>
-            ) : (
-              <>
-                <Lock className="h-4 w-4 mr-1" />
-                {rosterExists && !isRosterFinalized ? "Re-Finalize Roster" : "Finalize Roster"}
-              </>
-            )}
-          </Button>
+          {/* Action button - changes based on roster state */}
+          {isRosterFinalized ? (
+            /* When finalized - show Revise button */
+            <Button
+              size="sm"
+              variant="default"
+              onClick={handleReviseRoster}
+              disabled={reviseRosterMutation.isPending}
+              className="ml-2"
+            >
+              {reviseRosterMutation.isPending ? (
+                <>
+                  <ChurchLoader type="church" size="xs" className="mr-2" />
+                  Revising...
+                </>
+              ) : (
+                <>
+                  <Pencil className="h-4 w-4 mr-1" />
+                  Revise Roster
+                </>
+              )}
+            </Button>
+          ) : (
+            /* When not finalized - show Finalize or Re-Finalize */
+            <Button
+              size="sm"
+              variant="default"
+              onClick={handleFinalizeRoster}
+              disabled={sundaysData?.length === 0}
+              className="ml-2"
+            >
+              <Lock className="h-4 w-4 mr-1" />
+              {showRefinalize ? "Re-Finalize Roster" : "Finalize Roster"}
+            </Button>
+          )}
+          
         </div>
       </div>
       
