@@ -18,7 +18,7 @@ export function NavBar() {
   const navItems = [
     { href: "/", label: "Availability" },
     { href: "/roster", label: "Show Roster" },
-    { href: "/account", label: "Account", icon: User },
+    { href: "/account", label: "Account" }, // Removed icon
     ...(user?.isAdmin ? [{ href: "/admin", label: "Admin" }] : []),
   ];
 
