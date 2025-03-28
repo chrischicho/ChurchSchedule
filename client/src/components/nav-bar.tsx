@@ -1,8 +1,9 @@
+import React from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Logo } from "./logo";
 import { Button } from "./ui/button";
-import { LogOut, Menu, User } from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -15,10 +16,17 @@ export function NavBar() {
   const [location] = useLocation();
   const { user, logout } = useAuth();
 
-  const navItems = [
+  // Define the type for navigation items
+  type NavItem = {
+    href: string;
+    label: string;
+    icon?: React.ElementType;
+  };
+
+  const navItems: NavItem[] = [
     { href: "/", label: "Availability" },
     { href: "/roster", label: "Show Roster" },
-    { href: "/account", label: "Account" }, // Removed icon
+    { href: "/account", label: "Account" },
     ...(user?.isAdmin ? [{ href: "/admin", label: "Admin" }] : []),
   ];
 

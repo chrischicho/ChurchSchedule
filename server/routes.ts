@@ -12,7 +12,8 @@ import {
   insertServiceRoleSchema,
   insertRosterAssignmentSchema,
   updateProfileSchema,
-  updateMemberNameSchema
+  updateMemberNameSchema,
+  Verse
 } from "@shared/schema";
 import nodemailer from "nodemailer";
 import { renderToBuffer } from "@react-pdf/renderer";
@@ -334,13 +335,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create the PDF document with our data
       console.log("Creating PDF with service roster data");
       
-      // Create PDF element with explicit type casting for typescript compatibility
-      const pdfProps = { 
-        month: selectedMonth, 
-        serviceRoster: serviceRoster,
-        viewType: "roles" as "roles", // Use type assertion for viewType
-        verse: verse
+      // Create PDF element using appropriate props based on viewType
+      let pdfProps: {
+        month: Date;
+        serviceRoster?: { [dateStr: string]: { [roleName: string]: User[] } };
+        rosterData?: { [key: string]: User[] };
+        viewType: "card" | "simple" | "roles";
+        verse?: typeof verse;
       };
+      
+      if (viewType === "roles") {
+        // For roles view, use service roster data
+        pdfProps = { 
+          month: selectedMonth, 
+          serviceRoster: serviceRoster,
+          viewType: "roles" as const, 
+          verse: verse
+        };
+      } else {
+        // For availability views (card or simple), get availability data
+        // and format it for the legacy PDF format
+        const availabilityData = await storage.getAvailability();
+        
+        // Process availability data for the selected month
+        const rosterData: { [key: string]: User[] } = {};
+        
+        // Only include records for the selected month that are marked as available
+        const availableRecords = availabilityData.filter(record => {
+          const date = new Date(record.serviceDate);
+          return date.getMonth() === selectedMonth.getMonth() && 
+                date.getFullYear() === selectedMonth.getFullYear() &&
+                record.isAvailable;
+        });
+        
+        // Process each record and get the associated user
+        for (const record of availableRecords) {
+          // Format date for lookup
+          const date = new Date(record.serviceDate);
+          const dateStr = date.toISOString();
+          
+          // Initialize date entry if needed
+          if (!rosterData[dateStr]) {
+            rosterData[dateStr] = [];
+          }
+          
+          // Find the user for this availability record
+          const user = await storage.getUser(record.userId);
+          if (user) {
+            rosterData[dateStr].push(user);
+          }
+        }
+          
+        pdfProps = { 
+          month: selectedMonth, 
+          rosterData: rosterData,
+          viewType: viewType as "card" | "simple", 
+          verse: verse
+        };
+      }
       
       const rosterPDFElement = createElement(RosterPDF, pdfProps) as any;
       
