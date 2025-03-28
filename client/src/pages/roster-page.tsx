@@ -402,11 +402,11 @@ export default function RosterPage() {
     
     return (
       <div className="space-y-6">
-        <Alert variant="success" className="mb-6 bg-primary/10 border-primary">
+        <Alert  className="mb-6 bg-primary/10 border-primary">
           <Check className="h-4 w-4 text-primary" />
           <AlertTitle>Finalized Roster</AlertTitle>
           <AlertDescription>
-            This roster was finalized on {format(new Date(finalizedRosterData.finalizedRoster.createdAt), "MMMM d, yyyy")} 
+            This roster was finalized on {format(new Date(finalizedRosterData.finalizedRoster.finalizedAt || finalizedRosterData.finalizedRoster.createdAt), "MMMM d, yyyy")} 
             and is ready for service.
           </AlertDescription>
         </Alert>
@@ -515,11 +515,11 @@ export default function RosterPage() {
     
     return (
       <>
-        <Alert variant="success" className="mb-6 bg-primary/10 border-primary">
+        <Alert  className="mb-6 bg-primary/10 border-primary">
           <Check className="h-4 w-4 text-primary" />
           <AlertTitle>Finalized Roster</AlertTitle>
           <AlertDescription>
-            This roster was finalized on {format(new Date(finalizedRosterData.finalizedRoster.createdAt), "MMMM d, yyyy")} 
+            This roster was finalized on {format(new Date(finalizedRosterData.finalizedRoster.finalizedAt || finalizedRosterData.finalizedRoster.createdAt), "MMMM d, yyyy")} 
             and is ready for service.
           </AlertDescription>
         </Alert>
