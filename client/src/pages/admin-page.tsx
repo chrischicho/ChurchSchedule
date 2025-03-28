@@ -753,7 +753,7 @@ export default function AdminPage() {
   const [emailAddress, setEmailAddress] = useState("");
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
-  const [viewType, setViewType] = useState<"card" | "simple">("card");
+  const [viewType, setViewType] = useState<"card" | "simple" | "roles">("card");
   const [availableMonths, setAvailableMonths] = useState<Date[]>([]);
   
   // State for service roster sending
@@ -1118,7 +1118,7 @@ export default function AdminPage() {
     mutationFn: async (data: { 
       email: string; 
       month: string;
-      viewType: "card" | "simple";
+      viewType: "card" | "simple" | "roles";
     }) => {
       const result = await apiRequest({
         method: "POST", 
@@ -1259,15 +1259,18 @@ export default function AdminPage() {
           <TabsList className="w-full mb-6">
             <TabsTrigger value="settings" className="flex-1">
               <Settings className="h-4 w-4 mr-2" />
-              Settings & Special Days
+              <span className="hidden md:inline">Settings & Special Days</span>
+              <span className="md:hidden">Settings</span>
             </TabsTrigger>
             <TabsTrigger value="members" className="flex-1">
               <Users className="h-4 w-4 mr-2" />
-              Member Management
+              <span className="hidden md:inline">Member Management</span>
+              <span className="md:hidden">Members</span>
             </TabsTrigger>
             <TabsTrigger value="roster" className="flex-1">
               <CalendarRange className="h-4 w-4 mr-2" />
-              Roster Builder
+              <span className="hidden md:inline">Roster Builder</span>
+              <span className="md:hidden">Roster</span>
             </TabsTrigger>
           </TabsList>
           
@@ -1488,7 +1491,7 @@ export default function AdminPage() {
                       <label className="text-sm font-medium">View Style</label>
                       <Select
                         value={viewType}
-                        onValueChange={(value) => setViewType(value as "card" | "simple")}
+                        onValueChange={(value) => setViewType(value as "card" | "simple" | "roles")}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select a view type" />
@@ -1496,6 +1499,7 @@ export default function AdminPage() {
                         <SelectContent>
                           <SelectItem value="card">Card View</SelectItem>
                           <SelectItem value="simple">Simple View</SelectItem>
+                          <SelectItem value="roles">Roles View</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
