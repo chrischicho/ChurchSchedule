@@ -61,6 +61,19 @@ export const rosterAssignments = pgTable("roster_assignments", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Store information about finalized roster months
+export const finalizedRosters = pgTable("finalized_rosters", {
+  id: serial("id").primaryKey(),
+  year: integer("year").notNull(),
+  month: integer("month").notNull(), // 1-12
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  createdBy: integer("createdBy").notNull(), // User ID who created the roster
+  isFinalized: boolean("is_finalized").default(false).notNull(),
+  finalizedAt: timestamp("finalized_at"),
+  finalizedBy: integer("finalized_by"), // User ID who finalized
+  message: text("message"), // Optional message to display with the finalized roster
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({ 
   id: true 
 });
@@ -90,6 +103,12 @@ export const insertRosterAssignmentSchema = createInsertSchema(rosterAssignments
   id: true,
   createdAt: true,
   updatedAt: true
+});
+
+export const insertFinalizedRosterSchema = createInsertSchema(finalizedRosters).omit({
+  id: true,
+  createdAt: true,
+  finalizedAt: true
 });
 
 export const updatePinSchema = z.object({
@@ -149,3 +168,5 @@ export type ServiceRole = typeof serviceRoles.$inferSelect;
 export type InsertServiceRole = z.infer<typeof insertServiceRoleSchema>;
 export type RosterAssignment = typeof rosterAssignments.$inferSelect;
 export type InsertRosterAssignment = z.infer<typeof insertRosterAssignmentSchema>;
+export type FinalizedRoster = typeof finalizedRosters.$inferSelect;
+export type InsertFinalizedRoster = z.infer<typeof insertFinalizedRosterSchema>;

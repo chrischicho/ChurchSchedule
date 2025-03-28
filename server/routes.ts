@@ -11,10 +11,12 @@ import {
   insertSpecialDaySchema,
   insertServiceRoleSchema,
   insertRosterAssignmentSchema,
+  insertFinalizedRosterSchema,
   updateProfileSchema,
   updateMemberNameSchema,
   Verse,
-  RosterAssignment
+  RosterAssignment,
+  FinalizedRoster
 } from "@shared/schema";
 import nodemailer from "nodemailer";
 import { renderToBuffer } from "@react-pdf/renderer";
@@ -1006,6 +1008,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (err) {
       console.error("Error fetching available Sundays:", err);
       res.status(500).json({ message: "Failed to fetch available Sundays" });
+    }
+  });
+  
+  // Finalized Roster Endpoints
+  
+  // Get all finalized rosters
+  app.get("/api/admin/finalized-rosters", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user.isAdmin) return res.sendStatus(403);
+    
+    try {
+      const finalizedRosters = await storage.getAllFinalizedRosters();
+      res.json(finalizedRosters);
+    } catch (err) {
+      console.error("Error fetching finalized rosters:", err);
+      res.status(500).json({ message: "Failed to fetch finalized rosters" });
+    }
+  });
+  
+  // Get a specific finalized roster by year and month
+  app.get("/api/finalized-roster/:year/:month", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const year = parseInt(req.params.year);
+      const month = parseInt(req.params.month);
+      
+      const finalizedRoster = await storage.getFinalizedRoster(year, month);
+      
+      if (!finalizedRoster) {
+        return res.status(404).json({ message: "Roster not found or not finalized yet" });
+      }
+      
+      // Get the roster assignments with user data for the month
+      const assignments = await storage.getRosterAssignmentsWithUserData(year, month);
+      
+      res.json({
+        finalizedRoster,
+        assignments
+      });
+    } catch (err) {
+      console.error("Error fetching finalized roster:", err);
+      res.status(500).json({ message: "Failed to fetch finalized roster" });
+    }
+  });
+  
+  // Finalize a roster (admin only)
+  app.post("/api/admin/finalize-roster", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user.isAdmin) return res.sendStatus(403);
+    
+    try {
+      // Modify the incoming data to set the current user ID as createdBy
+      const data = {
+        ...req.body,
+        createdBy: req.user.id
+      };
+      
+      const parseResult = insertFinalizedRosterSchema.safeParse(data);
+      
+      if (!parseResult.success) {
+        return res.status(400).json({ 
+          message: "Invalid finalized roster data",
+          errors: parseResult.error.errors 
+        });
+      }
+      
+      const finalizedRoster = await storage.finalizeRoster(parseResult.data);
+      res.status(201).json(finalizedRoster);
+    } catch (err) {
+      console.error("Error finalizing roster:", err);
+      res.status(500).json({ message: "Failed to finalize roster" });
+    }
+  });
+  
+  // Unfinalize a roster (admin only)
+  app.delete("/api/admin/finalize-roster/:year/:month", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user.isAdmin) return res.sendStatus(403);
+    
+    try {
+      const year = parseInt(req.params.year);
+      const month = parseInt(req.params.month);
+      
+      await storage.unfinalizeRoster(year, month);
+      res.status(200).json({ message: "Roster unfinalized successfully" });
+    } catch (err) {
+      console.error("Error unfinalizing roster:", err);
+      res.status(500).json({ message: "Failed to unfinalize roster" });
     }
   });
 

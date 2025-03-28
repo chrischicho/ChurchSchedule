@@ -1,6 +1,6 @@
 import { IStorage } from "./storage.interface";
 import { 
-  users, availability, settings, verses, specialDays, serviceRoles, rosterAssignments,
+  users, availability, settings, verses, specialDays, serviceRoles, rosterAssignments, finalizedRosters,
   InsertUser, User, 
   InsertAvailability, Availability, 
   Settings,
@@ -8,6 +8,7 @@ import {
   SpecialDay, InsertSpecialDay,
   ServiceRole, InsertServiceRole,
   RosterAssignment, InsertRosterAssignment,
+  FinalizedRoster, InsertFinalizedRoster,
   UpdateProfile
 } from "@shared/schema";
 import { db } from "./db";
@@ -817,6 +818,78 @@ export class DatabaseStorage implements IStorage {
       console.error("Error in getAvailableSundaysWithPeople:", error);
       return [];
     }
+  }
+  
+  // Finalized roster operations
+  async getFinalizedRoster(year: number, month: number): Promise<FinalizedRoster | undefined> {
+    const [finalizedRoster] = await db
+      .select()
+      .from(finalizedRosters)
+      .where(
+        and(
+          eq(finalizedRosters.year, year),
+          eq(finalizedRosters.month, month)
+        )
+      );
+      
+    return finalizedRoster;
+  }
+  
+  async finalizeRoster(data: InsertFinalizedRoster): Promise<FinalizedRoster> {
+    try {
+      // Check if a record already exists for this year/month
+      const existing = await this.getFinalizedRoster(data.year, data.month);
+      
+      if (existing) {
+        // Update the existing record
+        const [updated] = await db
+          .update(finalizedRosters)
+          .set({
+            ...data,
+            isFinalized: true,
+            finalizedAt: new Date(),
+            finalizedBy: data.createdBy
+          })
+          .where(eq(finalizedRosters.id, existing.id))
+          .returning();
+          
+        return updated;
+      } else {
+        // Create a new record
+        const [created] = await db
+          .insert(finalizedRosters)
+          .values({
+            ...data,
+            isFinalized: true,
+            finalizedAt: new Date(),
+            finalizedBy: data.createdBy
+          })
+          .returning();
+          
+        return created;
+      }
+    } catch (error) {
+      console.error("Error in finalizeRoster:", error);
+      throw error;
+    }
+  }
+  
+  async unfinalizeRoster(year: number, month: number): Promise<void> {
+    const existing = await this.getFinalizedRoster(year, month);
+    
+    if (existing) {
+      await db
+        .update(finalizedRosters)
+        .set({
+          isFinalized: false,
+          finalizedAt: null
+        })
+        .where(eq(finalizedRosters.id, existing.id));
+    }
+  }
+  
+  async getAllFinalizedRosters(): Promise<FinalizedRoster[]> {
+    return db.select().from(finalizedRosters);
   }
 }
 
