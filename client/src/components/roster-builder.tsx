@@ -2,9 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { format, addMonths, subMonths } from 'date-fns';
-import { User, ServiceRole } from '@shared/schema';
+import { User, ServiceRole, InsertFinalizedRoster } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
-import { ChevronLeft, ChevronRight, Trash2, Save, AlertTriangle, Info, AlertCircle } from 'lucide-react';
+import { 
+  ChevronLeft, 
+  ChevronRight, 
+  Trash2, 
+  Save, 
+  AlertTriangle, 
+  Info, 
+  AlertCircle, 
+  Check, 
+  Lock, 
+  Calendar as CalendarIcon,
+  Send
+} from 'lucide-react';
 
 // Define role maximum limits
 const ROLE_LIMITS: Record<string, number> = {
@@ -63,6 +75,8 @@ export function RosterBuilder() {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [selectedSunday, setSelectedSunday] = useState<SundayData | null>(null);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [isFinalizeDialogOpen, setIsFinalizeDialogOpen] = useState(false);
+  const [finalizeMessage, setFinalizeMessage] = useState('');
   const [selectedAssignments, setSelectedAssignments] = useState<Record<number, number[]>>({}); // Changed to array of user IDs
 
   // Get available Sundays with people
@@ -399,11 +413,18 @@ export function RosterBuilder() {
         try {
           console.log(`Making DELETE request to: /api/admin/roster-assignments/date/${year}/${month}/${day}`);
           
-          // Use apiRequest from queryClient instead of fetch directly
-          const result = await apiRequest(
-            `/api/admin/roster-assignments/date/${year}/${month}/${day}`, 
-            { method: 'DELETE' }
-          );
+          // Use fetch directly since apiRequest is giving type errors
+          const response = await fetch(`/api/admin/roster-assignments/date/${year}/${month}/${day}`, {
+            method: 'DELETE',
+            credentials: 'include'
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to clear assignments');
+          }
+          
+          const result = await response.json();
           
           console.log("Clear assignments success:", result);
           
@@ -452,6 +473,100 @@ export function RosterBuilder() {
     }
   };
 
+  // Mutation for finalizing the roster
+  const finalizeRosterMutation = useMutation({
+    mutationFn: async (data: InsertFinalizedRoster) => {
+      const response = await fetch('/api/admin/finalize-roster', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to finalize roster');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      setIsFinalizeDialogOpen(false);
+      setFinalizeMessage('');
+      
+      // Invalidate finalized rosters queries to refresh
+      queryClient.invalidateQueries({ queryKey: ['/api/finalized-roster'] });
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/finalized-roster', currentMonth.getFullYear(), currentMonth.getMonth() + 1] 
+      });
+      
+      toast({
+        title: "Roster Finalized",
+        description: `The roster for ${format(currentMonth, 'MMMM yyyy')} has been finalized and is now available to all members.`,
+      });
+    },
+    onError: (error) => {
+      console.error("Error finalizing roster:", error);
+      toast({
+        title: "Error Finalizing Roster",
+        description: error instanceof Error ? error.message : "Failed to finalize the roster. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Handle opening the finalize dialog
+  const handleFinalizeRoster = () => {
+    setIsFinalizeDialogOpen(true);
+  };
+
+  // Handle submitting the finalize roster request
+  const handleSubmitFinalize = async () => {
+    // Create finalize roster data
+    const finalizeData: InsertFinalizedRoster = {
+      year: currentMonth.getFullYear(),
+      month: currentMonth.getMonth() + 1, // Convert from 0-indexed to 1-indexed
+      createdBy: 1, // Assuming the current user's ID (should be replaced with actual user ID)
+      isFinalized: true,
+      finalizedBy: 1, // Same as createdBy
+      message: finalizeMessage || undefined, // Only include if there's a message
+    };
+
+    // Submit the data
+    finalizeRosterMutation.mutate(finalizeData);
+  };
+
+  // Check if there's any existing finalized roster for this month
+  const { data: finalizedRoster, isLoading: isFinalizedRosterLoading } = useQuery({
+    queryKey: ['/api/finalized-roster', currentMonth.getFullYear(), currentMonth.getMonth() + 1],
+    queryFn: async () => {
+      try {
+        const response = await fetch(`/api/finalized-roster/${currentMonth.getFullYear()}/${currentMonth.getMonth() + 1}`, {
+          credentials: 'include'
+        });
+        
+        if (response.status === 404) {
+          return null; // No finalized roster yet
+        }
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch finalized roster status');
+        }
+        
+        return response.json();
+      } catch (error) {
+        console.error("Error checking finalized status:", error);
+        return null;
+      }
+    },
+    // Don't throw on error, just return null
+    retry: false
+  });
+
+  const isRosterFinalized = finalizedRoster !== null && finalizedRoster !== undefined;
+
   if (isSundaysLoading) {
     return <LoaderOverlay isLoading={true} type="calendar" loadingText="Loading roster data..." />;
   }
@@ -467,12 +582,76 @@ export function RosterBuilder() {
     );
   }
 
+  // Finalize roster confirmation dialog
+  const FinalizeRosterDialog = () => (
+    <Dialog open={isFinalizeDialogOpen} onOpenChange={setIsFinalizeDialogOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Finalize Roster for {format(currentMonth, 'MMMM yyyy')}</DialogTitle>
+          <DialogDescription>
+            Finalizing the roster will make it visible to all members. This should be done when all assignments for the month are completed.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <label htmlFor="message" className="text-sm font-medium">
+              Optional Message (visible to members)
+            </label>
+            <textarea
+              id="message"
+              value={finalizeMessage}
+              onChange={(e) => setFinalizeMessage(e.target.value)}
+              placeholder="Add any notes about this month's roster..."
+              className="w-full min-h-[100px] px-3 py-2 text-sm rounded-md border border-input bg-transparent ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+            />
+          </div>
+        </div>
+        
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setIsFinalizeDialogOpen(false)}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSubmitFinalize} 
+            disabled={finalizeRosterMutation.isPending}
+          >
+            {finalizeRosterMutation.isPending ? (
+              <>
+                <ChurchLoader type="church" size="xs" className="mr-2" />
+                Finalizing...
+              </>
+            ) : (
+              <>
+                <Lock className="h-4 w-4 mr-2" />
+                Finalize Roster
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
   return (
     <div className="w-full space-y-4">
       <h2 className="text-2xl font-bold mb-4">Roster Builder</h2>
 
-      {/* Month selector header - Top row */}
-      <div className="flex justify-between items-center mb-4">
+      {/* Add finalized roster status alert if finalized */}
+      {isRosterFinalized && (
+        <Alert className="mb-6 bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-900">
+          <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
+          <div className="ml-3">
+            <h4 className="font-medium text-green-800 dark:text-green-300">Roster Finalized</h4>
+            <p className="text-sm text-green-700 dark:text-green-400">
+              The roster for {format(currentMonth, 'MMMM yyyy')} has been finalized and is available to all members.
+            </p>
+          </div>
+        </Alert>
+      )}
+
+      {/* Month selector header with Finalize button - Top row */}
+      <div className="flex flex-wrap justify-between items-center mb-4 gap-2">
         <h3 className="font-medium text-lg">Available Sundays</h3>
         <div className="flex items-center space-x-2">
           <Button 
@@ -496,8 +675,32 @@ export function RosterBuilder() {
             <span className="hidden sm:inline mr-1">Next</span>
             <ChevronRight className="h-4 w-4" />
           </Button>
+          
+          {/* Finalize button */}
+          <Button
+            size="sm"
+            variant={isRosterFinalized ? "outline" : "default"}
+            onClick={handleFinalizeRoster}
+            disabled={isRosterFinalized || sundaysData?.length === 0}
+            className="ml-2"
+          >
+            {isRosterFinalized ? (
+              <>
+                <Check className="h-4 w-4 mr-1" />
+                Finalized
+              </>
+            ) : (
+              <>
+                <Lock className="h-4 w-4 mr-1" />
+                Finalize Roster
+              </>
+            )}
+          </Button>
         </div>
       </div>
+      
+      {/* Finalize Roster Dialog */}
+      <FinalizeRosterDialog />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Left panel - Available Sundays */}
