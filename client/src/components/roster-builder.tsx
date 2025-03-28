@@ -585,7 +585,7 @@ export function RosterBuilder() {
   };
 
   // Check if there's any existing finalized roster for this month
-  const { data: finalizedRoster, isLoading: isFinalizedRosterLoading } = useQuery({
+  const { data: rosterData, isLoading: isFinalizedRosterLoading } = useQuery({
     queryKey: ['/api/finalized-roster', currentMonth.getFullYear(), currentMonth.getMonth() + 1],
     queryFn: async () => {
       try {
@@ -611,10 +611,14 @@ export function RosterBuilder() {
     retry: false
   });
 
+  // Extract the actual finalized roster from the nested response
+  const finalizedRoster = rosterData?.finalizedRoster;
+  
   // Define the different roster states we need to handle
   const rosterExists = finalizedRoster !== null && finalizedRoster !== undefined;
   // Add console log to debug the actual values we're getting
   console.log("Finalized Roster Data:", finalizedRoster);
+  console.log("Full API Response:", rosterData);
   
   const isRosterFinalized = rosterExists && finalizedRoster?.isFinalized === true;
   const isRosterDraft = rosterExists && finalizedRoster?.isFinalized === false;
