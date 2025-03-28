@@ -789,11 +789,10 @@ export default function AdminPage() {
   const createSpecialDayMutation = useMutation({
     mutationFn: async (data: any) => {
       console.log("Creating special day with data:", data);
-      const res = await apiRequest({
+      return await apiRequest({
         method: "POST",
         data
       }, "/api/admin/special-days");
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/special-days"] });
@@ -817,11 +816,10 @@ export default function AdminPage() {
   const updateSpecialDayMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number, data: any }) => {
       console.log(`Updating special day ${id} with data:`, data);
-      const res = await apiRequest({
+      return await apiRequest({
         method: "PATCH",
         data
       }, `/api/admin/special-days/${id}`);
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/special-days"] });
@@ -912,11 +910,10 @@ export default function AdminPage() {
 
   const createMemberMutation = useMutation({
     mutationFn: async (data: { firstName: string; lastName: string }) => {
-      const res = await apiRequest({
+      return await apiRequest({
         method: "POST",
         data
       }, "/api/admin/members");
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
@@ -962,11 +959,10 @@ export default function AdminPage() {
 
   const updateSettingsMutation = useMutation({
     mutationFn: async (data: { deadlineDay: number }) => {
-      const res = await apiRequest({
+      return await apiRequest({
         method: "POST",
         data
       }, "/api/admin/settings");
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
@@ -987,11 +983,10 @@ export default function AdminPage() {
   // Initials update mutation
   const updateInitialsMutation = useMutation({
     mutationFn: async ({ userId, initials }: { userId: number, initials: string }) => {
-      const res = await apiRequest({
+      return await apiRequest({
         method: "PATCH",
         data: { initials }
       }, `/api/admin/members/${userId}/initials`);
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
@@ -1015,11 +1010,10 @@ export default function AdminPage() {
   // Name update mutation
   const updateNameMutation = useMutation({
     mutationFn: async ({ userId, firstName, lastName }: { userId: number, firstName: string, lastName: string }) => {
-      const res = await apiRequest({
+      return await apiRequest({
         method: "PATCH",
         data: { firstName, lastName }
       }, `/api/admin/members/${userId}/name`);
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
@@ -1093,11 +1087,10 @@ export default function AdminPage() {
 
   const updateNameFormatMutation = useMutation({
     mutationFn: async (data: { format: string }) => {
-      const res = await apiRequest({
+      return await apiRequest({
         method: "POST",
         data
       }, "/api/admin/name-format");
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/name-format"] });
