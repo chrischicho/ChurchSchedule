@@ -611,7 +611,9 @@ export function RosterBuilder() {
     retry: false
   });
 
-  const isRosterFinalized = finalizedRoster !== null && finalizedRoster !== undefined && finalizedRoster.isFinalized === true;
+  // Check if a roster record exists and if it's currently finalized
+  const rosterExists = finalizedRoster !== null && finalizedRoster !== undefined;
+  const isRosterFinalized = rosterExists && finalizedRoster.isFinalized === true;
 
   if (isSundaysLoading) {
     return <LoaderOverlay isLoading={true} type="calendar" loadingText="Loading roster data..." />;
@@ -683,36 +685,50 @@ export function RosterBuilder() {
     <div className="w-full space-y-4">
       <h2 className="text-2xl font-bold mb-4">Roster Builder</h2>
 
-      {/* Add finalized roster status alert if finalized */}
-      {isRosterFinalized && (
-        <Alert className="mb-6 bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-900">
-          <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
-          <div className="flex-1 ml-3">
-            <h4 className="font-medium text-green-800 dark:text-green-300">Roster Finalized</h4>
-            <p className="text-sm text-green-700 dark:text-green-400">
-              The roster for {format(currentMonth, 'MMMM yyyy')} has been finalized and is available to all members.
-            </p>
-          </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleReviseRoster}
-            disabled={reviseRosterMutation.isPending}
-            className="border-green-300 text-green-700 hover:text-green-800 hover:bg-green-100 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-900/30"
-          >
-            {reviseRosterMutation.isPending ? (
-              <>
-                <ChurchLoader type="church" size="xs" className="mr-2" />
-                Revising...
-              </>
-            ) : (
-              <>
-                <Pencil className="h-4 w-4 mr-2" />
-                Revise Roster
-              </>
-            )}
-          </Button>
-        </Alert>
+      {/* Add roster status alert - different versions based on finalization status */}
+      {rosterExists && (
+        <>
+          {isRosterFinalized ? (
+            <Alert className="mb-6 bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-900">
+              <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
+              <div className="flex-1 ml-3">
+                <h4 className="font-medium text-green-800 dark:text-green-300">Roster Finalized</h4>
+                <p className="text-sm text-green-700 dark:text-green-400">
+                  The roster for {format(currentMonth, 'MMMM yyyy')} has been finalized and is available to all members.
+                </p>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleReviseRoster}
+                disabled={reviseRosterMutation.isPending}
+                className="border-green-300 text-green-700 hover:text-green-800 hover:bg-green-100 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-900/30"
+              >
+                {reviseRosterMutation.isPending ? (
+                  <>
+                    <ChurchLoader type="church" size="xs" className="mr-2" />
+                    Revising...
+                  </>
+                ) : (
+                  <>
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Revise Roster
+                  </>
+                )}
+              </Button>
+            </Alert>
+          ) : (
+            <Alert className="mb-6 bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-900">
+              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              <div className="flex-1 ml-3">
+                <h4 className="font-medium text-amber-800 dark:text-amber-300">Roster in Draft Mode</h4>
+                <p className="text-sm text-amber-700 dark:text-amber-400">
+                  This roster was previously finalized but is now in draft mode. Make your changes and finalize it again when ready.
+                </p>
+              </div>
+            </Alert>
+          )}
+        </>
       )}
 
       {/* Month selector header with Finalize button - Top row */}
@@ -757,7 +773,7 @@ export function RosterBuilder() {
             ) : (
               <>
                 <Lock className="h-4 w-4 mr-1" />
-                Finalize Roster
+                {rosterExists && !isRosterFinalized ? "Re-Finalize Roster" : "Finalize Roster"}
               </>
             )}
           </Button>
