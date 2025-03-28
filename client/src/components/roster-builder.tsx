@@ -537,6 +537,51 @@ export function RosterBuilder() {
     // Submit the data
     finalizeRosterMutation.mutate(finalizeData);
   };
+  
+  // Mutation for revoking the finalized status
+  const reviseRosterMutation = useMutation({
+    mutationFn: async () => {
+      const year = currentMonth.getFullYear();
+      const month = currentMonth.getMonth() + 1; // Convert from 0-indexed to 1-indexed
+      
+      const response = await fetch(`/api/admin/finalize-roster/${year}/${month}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to revise roster');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      // Invalidate finalized rosters queries to refresh
+      queryClient.invalidateQueries({ queryKey: ['/api/finalized-roster'] });
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/finalized-roster', currentMonth.getFullYear(), currentMonth.getMonth() + 1] 
+      });
+      
+      toast({
+        title: "Roster Available for Revision",
+        description: `The roster for ${format(currentMonth, 'MMMM yyyy')} can now be edited again.`,
+      });
+    },
+    onError: (error) => {
+      console.error("Error revising roster:", error);
+      toast({
+        title: "Error Revising Roster",
+        description: error instanceof Error ? error.message : "Failed to revise the roster. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Handle revising the roster (unfinalize)
+  const handleReviseRoster = () => {
+    reviseRosterMutation.mutate();
+  };
 
   // Check if there's any existing finalized roster for this month
   const { data: finalizedRoster, isLoading: isFinalizedRosterLoading } = useQuery({
@@ -641,12 +686,31 @@ export function RosterBuilder() {
       {isRosterFinalized && (
         <Alert className="mb-6 bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-900">
           <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
-          <div className="ml-3">
+          <div className="flex-1 ml-3">
             <h4 className="font-medium text-green-800 dark:text-green-300">Roster Finalized</h4>
             <p className="text-sm text-green-700 dark:text-green-400">
               The roster for {format(currentMonth, 'MMMM yyyy')} has been finalized and is available to all members.
             </p>
           </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleReviseRoster}
+            disabled={reviseRosterMutation.isPending}
+            className="border-green-300 text-green-700 hover:text-green-800 hover:bg-green-100 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-900/30"
+          >
+            {reviseRosterMutation.isPending ? (
+              <>
+                <ChurchLoader type="church" size="xs" className="mr-2" />
+                Revising...
+              </>
+            ) : (
+              <>
+                <Pencil className="h-4 w-4 mr-2" />
+                Revise Roster
+              </>
+            )}
+          </Button>
         </Alert>
       )}
 
