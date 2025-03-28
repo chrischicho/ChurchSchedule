@@ -15,7 +15,8 @@ import {
   Check, 
   Lock, 
   Calendar as CalendarIcon,
-  Send
+  Send,
+  Pencil
 } from 'lucide-react';
 
 // Define role maximum limits
