@@ -1,104 +1,205 @@
 import React from "react";
-import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet, Font, Image } from "@react-pdf/renderer";
 import { format } from "date-fns";
 import { User, Verse } from "@shared/schema";
 import { PDFVerse } from "./pdf-verse";
 
+// Register custom fonts for enhanced typography
+Font.register({
+  family: 'Montserrat',
+  fonts: [
+    { src: 'https://fonts.gstatic.com/s/montserrat/v15/JTUSjIg1_i6t8kCHKm459Wlhzg.ttf', fontWeight: 400 },
+    { src: 'https://fonts.gstatic.com/s/montserrat/v15/JTURjIg1_i6t8kCHKm45_bZF3gnD-w.ttf', fontWeight: 600 },
+    { src: 'https://fonts.gstatic.com/s/montserrat/v15/JTURjIg1_i6t8kCHKm45_dJE3gnD-w.ttf', fontWeight: 700 },
+  ]
+});
+
+Font.register({
+  family: 'Lora',
+  fonts: [
+    { src: 'https://fonts.gstatic.com/s/lora/v16/0QI6MX1D_JOuGQbT0gvTJPa787weuxJBkqg.ttf', fontStyle: 'normal' },
+    { src: 'https://fonts.gstatic.com/s/lora/v16/0QI8MX1D_JOuMw_hLdO6T2wV9KnW-MoFoq92mQ.ttf', fontStyle: 'italic' },
+  ]
+});
+
+// Enhanced color palette
+const colors = {
+  primary: '#4a6da7',
+  primaryLight: '#edf2f9',
+  secondary: '#3d5a80',
+  accent: '#718ecc',
+  darkText: '#23304e',
+  mediumText: '#4e5d79',
+  lightText: '#8c9bb5',
+  background: '#ffffff',
+  divider: '#e1e8f5',
+  tableHeader: '#f0f4fa',
+  cardBg: '#f8fafd',
+  highlight: '#f1f8ff',
+  danger: '#e63946',
+};
+
 const styles = StyleSheet.create({
   page: {
     flexDirection: "column",
-    backgroundColor: "#ffffff",
-    padding: 30,
+    backgroundColor: colors.background,
+    padding: 40,
+    fontFamily: 'Montserrat',
   },
   header: {
-    fontSize: 24,
+    fontSize: 28,
     marginBottom: 5,
     textAlign: "center",
-    color: "#1a1a1a",
+    color: colors.primary,
+    fontWeight: 700,
+    fontFamily: 'Montserrat',
+  },
+  headerBar: {
+    height: 4,
+    width: 100,
+    backgroundColor: colors.primary,
+    alignSelf: 'center',
+    marginBottom: 15,
+    borderRadius: 2,
   },
   churchName: {
     fontSize: 16,
-    marginBottom: 20,
+    marginBottom: 8,
     textAlign: "center",
-    color: "#444444",
+    color: colors.mediumText,
+    fontFamily: 'Montserrat',
+    fontWeight: 600,
   },
   subHeader: {
     fontSize: 14,
-    marginBottom: 10,
-    color: "#666666",
+    marginBottom: 25,
+    color: colors.accent,
     textAlign: "center",
+    fontFamily: 'Lora',
+    fontStyle: 'italic',
   },
   copyright: {
     position: "absolute",
     bottom: 30,
-    right: 30,
-    fontSize: 10,
-    color: "#999999",
+    right: 40,
+    fontSize: 9,
+    color: colors.lightText,
+    fontFamily: 'Montserrat',
+  },
+  pageNumber: {
+    position: "absolute",
+    bottom: 30,
+    left: 40,
+    fontSize: 9,
+    color: colors.lightText,
+    fontFamily: 'Montserrat',
   },
   section: {
-    margin: 10,
-    padding: 10,
+    margin: 0,
+    marginBottom: 15,
+    padding: 15,
     flexGrow: 1,
+    borderRadius: 5,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary,
+    backgroundColor: colors.primaryLight,
   },
   serviceDate: {
     fontSize: 16,
-    marginBottom: 10,
-    color: "#333333",
+    marginBottom: 12,
+    color: colors.darkText,
+    paddingBottom: 6,
     borderBottomWidth: 1,
-    borderBottomColor: "#eeeeee",
-    paddingBottom: 5,
+    borderBottomColor: colors.divider,
+    fontWeight: 600,
+    fontFamily: 'Montserrat',
   },
   memberList: {
     marginLeft: 20,
+    marginTop: 5,
   },
   member: {
     fontSize: 12,
     marginBottom: 5,
-    color: "#444444",
+    color: colors.mediumText,
+    fontFamily: 'Lora',
   },
   noMembers: {
     fontSize: 12,
     fontStyle: "italic",
-    color: "#666666",
+    color: colors.lightText,
+    fontFamily: 'Lora',
   },
-  // Card view styles
+  // Card view styles with enhanced design
   card: {
-    marginBottom: 10,
-    padding: 8,
+    marginBottom: 12,
+    padding: 10,
     borderWidth: 1,
-    borderColor: "#eeeeee",
-    borderRadius: 4,
-    backgroundColor: "#f9f9f9",
+    borderColor: colors.divider,
+    borderRadius: 6,
+    backgroundColor: colors.cardBg,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
   },
   cardMember: {
     fontSize: 12,
-    marginBottom: 2,
-    color: "#444444",
+    marginBottom: 4,
+    color: colors.mediumText,
+    fontFamily: 'Lora',
   },
-  // Simple view styles
+  // Simple view styles with better typography
   tableRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#eeeeee',
-    paddingVertical: 8,
+    borderBottomColor: colors.divider,
+    paddingVertical: 10,
+    alignItems: 'center',
   },
   tableHeader: {
-    backgroundColor: '#f1f1f1',
+    backgroundColor: colors.tableHeader,
     fontWeight: 'bold',
     fontSize: 12,
-    color: '#333333',
+    color: colors.darkText,
+    fontFamily: 'Montserrat',
   },
   tableCell: {
     flex: 1,
     fontSize: 11,
-    color: '#444444',
-    paddingHorizontal: 5,
+    color: colors.mediumText,
+    paddingHorizontal: 8,
+    fontFamily: 'Lora',
   },
   dateCell: {
     flex: 1.5,
     fontSize: 11,
-    color: '#444444',
-    paddingHorizontal: 5,
+    color: colors.darkText,
+    paddingHorizontal: 8,
+    fontFamily: 'Montserrat',
+    fontWeight: 600,
+  },
+  decorativeLine: {
+    height: 1,
+    backgroundColor: colors.accent,
+    width: '100%',
+    marginVertical: 15,
+    opacity: 0.3,
+  },
+  cornerDecoration: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    width: 60,
+    height: 60,
+    opacity: 0.07,
+  },
+  footerDecoration: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    width: 100,
+    height: 30,
+    opacity: 0.05,
   },
 });
 
@@ -168,7 +269,7 @@ export function RosterPDF({ month, rosterData, serviceRoster, viewType = "card",
   // Format for display in the roster
   const formatName = (user: User) => `${user.firstName} ${user.lastName}`;
 
-  // Add role-specific styles
+  // Add role-specific styles with enhanced design
   const roleStyles = StyleSheet.create({
     roleSection: {
       marginBottom: 15,
@@ -176,62 +277,89 @@ export function RosterPDF({ month, rosterData, serviceRoster, viewType = "card",
     roleName: {
       fontSize: 14,
       fontWeight: 'bold',
-      color: '#444444',
-      marginBottom: 5,
-      paddingBottom: 3,
+      color: colors.darkText,
+      marginBottom: 7,
+      paddingBottom: 4,
       borderBottomWidth: 1,
-      borderBottomColor: '#eeeeee',
+      borderBottomColor: colors.divider,
+      fontFamily: 'Montserrat',
     },
     roleUsers: {
-      marginLeft: 15,
+      marginLeft: 20,
     },
     roleUser: {
       fontSize: 12,
-      marginBottom: 3,
-      color: '#555555',
+      marginBottom: 4,
+      color: colors.mediumText,
+      fontFamily: 'Lora',
     },
     noRoleUsers: {
       fontSize: 11,
       fontStyle: 'italic',
-      color: '#888888',
-      marginLeft: 15,
-      marginBottom: 5,
+      color: colors.lightText,
+      marginLeft: 20,
+      marginBottom: 7,
+      fontFamily: 'Lora',
     },
-    // Roles table view
+    // Roles table view with enhanced design
     roleTable: {
       marginTop: 10,
-      marginBottom: 20,
     },
     roleRow: {
       flexDirection: 'row',
-      paddingVertical: 6,
+      paddingVertical: 8,
       borderBottomWidth: 1,
-      borderBottomColor: '#eeeeee',
+      borderBottomColor: colors.divider,
+      marginBottom: 4,
     },
     roleNameCell: {
       flex: 1,
-      fontSize: 12,
-      fontWeight: 'bold',
-      color: '#444444',
-      paddingHorizontal: 5,
+      fontSize: 13,
+      fontWeight: 600,
+      color: colors.secondary,
+      paddingHorizontal: 8,
+      fontFamily: 'Montserrat',
     },
     roleUsersCell: {
       flex: 2,
-      fontSize: 11,
-      color: '#555555',
-      paddingHorizontal: 5,
+      fontSize: 12,
+      color: colors.mediumText,
+      paddingHorizontal: 8,
+      fontFamily: 'Lora',
+    },
+    roleAltRow: {
+      backgroundColor: colors.highlight,
     },
   });
 
   return (
     <Document {...props}>
-      <Page size="A4" style={styles.page}>
+      <Page size="A4" style={styles.page} wrap>
+        {/* Create a decorative SVG for the top left corner */}
+        <View style={styles.cornerDecoration}>
+          <Text style={{
+            color: colors.primary,
+            fontSize: 50,
+            opacity: 0.3,
+            fontFamily: 'Montserrat',
+            fontWeight: 'bold',
+          }}>EG</Text>
+        </View>
+        
+        {/* Main header section */}
         <Text style={styles.header}>ElServe</Text>
+        <View style={styles.headerBar} />
         <Text style={styles.churchName}>El Gibbor IFC Sunday Roster</Text>
         <Text style={styles.subHeader}>
           {format(month, "MMMM yyyy")}
         </Text>
-        <Text style={styles.copyright}>ElGibbor IFC ©</Text>
+        
+        {/* Decorative top divider */}
+        <View style={styles.decorativeLine} />
+        
+        {/* Page number and copyright info */}
+        <Text style={styles.pageNumber}>Page 1</Text>
+        <Text style={styles.copyright}>ElGibbor IFC © {new Date().getFullYear()}</Text>
 
         {viewType === "roles" ? (
           // Roles View - for service assignments
@@ -243,37 +371,83 @@ export function RosterPDF({ month, rosterData, serviceRoster, viewType = "card",
               
               return (
                 <View key={isoDateStr} style={styles.section}>
-                  <Text style={styles.serviceDate}>
-                    {format(date, "EEEE, MMMM d, yyyy")}
-                  </Text>
+                  {/* Service date with icon effect */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <View style={{ 
+                      width: 6, 
+                      height: 6, 
+                      borderRadius: 3, 
+                      backgroundColor: colors.accent, 
+                      marginRight: 8 
+                    }} />
+                    <Text style={styles.serviceDate}>
+                      {format(date, "EEEE, MMMM d, yyyy")}
+                    </Text>
+                  </View>
                   
                   {hasAssignments ? (
                     <View style={roleStyles.roleTable}>
-                      {/* Role assignments */}
+                      {/* Role assignments with alternating row colors */}
                       {Object.entries(rolesForDate).map(([roleName, users], index) => (
-                        <View key={`${isoDateStr}-${roleName}`} style={roleStyles.roleRow}>
-                          <Text style={roleStyles.roleNameCell}>{roleName}:</Text>
+                        <View 
+                          key={`${isoDateStr}-${roleName}`} 
+                          style={[
+                            roleStyles.roleRow,
+                            index % 2 === 1 ? roleStyles.roleAltRow : {}
+                          ]}
+                        >
+                          <Text style={roleStyles.roleNameCell}>
+                            {roleName}
+                          </Text>
                           <Text style={roleStyles.roleUsersCell}>
                             {users.length > 0 
                               ? users.sort(sortUsers).map(user => formatName(user)).join(", ")
-                              : "(Unassigned)"
+                              : <Text style={{ fontStyle: 'italic', color: colors.lightText }}>
+                                  (Unassigned)
+                                </Text>
                             }
                           </Text>
                         </View>
                       ))}
                     </View>
                   ) : (
-                    <Text style={styles.noMembers}>No role assignments for this date</Text>
+                    <View style={{ 
+                      padding: 15, 
+                      backgroundColor: colors.highlight, 
+                      borderRadius: 4,
+                      marginTop: 10, 
+                      alignItems: 'center'
+                    }}>
+                      <Text style={[styles.noMembers, { textAlign: 'center' }]}>
+                        No role assignments for this service date
+                      </Text>
+                    </View>
                   )}
                 </View>
               );
             })}
             
-            {/* Display verse at the bottom */}
+            {/* Display verse at the bottom with decorative elements */}
             {verse && (
-              <View style={{ marginTop: 20, padding: 10 }}>
+              <>
+                <View style={{ 
+                  flexDirection: 'row', 
+                  alignItems: 'center', 
+                  marginTop: 15, 
+                  marginBottom: 5
+                }}>
+                  <View style={{ flex: 1, height: 1, backgroundColor: colors.divider }} />
+                  <Text style={{ 
+                    margin: 6, 
+                    color: colors.accent, 
+                    fontSize: 10, 
+                    fontFamily: 'Montserrat',
+                    fontWeight: 600,
+                  }}>VERSE OF THE MONTH</Text>
+                  <View style={{ flex: 1, height: 1, backgroundColor: colors.divider }} />
+                </View>
                 <PDFVerse verse={verse} />
-              </View>
+              </>
             )}
           </>
         ) : viewType === "card" ? (
@@ -305,11 +479,27 @@ export function RosterPDF({ month, rosterData, serviceRoster, viewType = "card",
               );
             })}
             
-            {/* Display verse at the bottom of the card view if provided */}
+            {/* Display verse at the bottom with decorative elements */}
             {verse && (
-              <View style={{ marginTop: 20, padding: 10 }}>
+              <>
+                <View style={{ 
+                  flexDirection: 'row', 
+                  alignItems: 'center', 
+                  marginTop: 15, 
+                  marginBottom: 5
+                }}>
+                  <View style={{ flex: 1, height: 1, backgroundColor: colors.divider }} />
+                  <Text style={{ 
+                    margin: 6, 
+                    color: colors.accent, 
+                    fontSize: 10, 
+                    fontFamily: 'Montserrat',
+                    fontWeight: 600,
+                  }}>VERSE OF THE MONTH</Text>
+                  <View style={{ flex: 1, height: 1, backgroundColor: colors.divider }} />
+                </View>
                 <PDFVerse verse={verse} />
-              </View>
+              </>
             )}
           </>
         ) : (
@@ -339,8 +529,28 @@ export function RosterPDF({ month, rosterData, serviceRoster, viewType = "card",
               );
             })}
             
-            {/* Display verse at the bottom of the table if provided */}
-            {verse && <PDFVerse verse={verse} />}
+            {/* Display verse at the bottom with decorative elements */}
+            {verse && (
+              <>
+                <View style={{ 
+                  flexDirection: 'row', 
+                  alignItems: 'center', 
+                  marginTop: 15, 
+                  marginBottom: 5
+                }}>
+                  <View style={{ flex: 1, height: 1, backgroundColor: colors.divider }} />
+                  <Text style={{ 
+                    margin: 6, 
+                    color: colors.accent, 
+                    fontSize: 10, 
+                    fontFamily: 'Montserrat',
+                    fontWeight: 600,
+                  }}>VERSE OF THE MONTH</Text>
+                  <View style={{ flex: 1, height: 1, backgroundColor: colors.divider }} />
+                </View>
+                <PDFVerse verse={verse} />
+              </>
+            )}
           </View>
         )}
       </Page>
