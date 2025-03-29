@@ -141,6 +141,9 @@ export function RosterBuilder() {
     }
   });
   
+  // Keep track of the last deleted assignment ID
+  const [lastDeletedAssignmentId, setLastDeletedAssignmentId] = useState<number | null>(null);
+
   // Mutation for deleting a single roster assignment
   const deleteAssignmentMutation = useMutation({
     mutationFn: async (assignmentId: number) => {
@@ -166,6 +169,21 @@ export function RosterBuilder() {
         console.warn('Server returned non-JSON response on successful deletion');
         return { message: 'Assignment deleted successfully' };
       }
+    },
+    onMutate: (assignmentId: number) => {
+      // Save the assignment ID being deleted
+      setLastDeletedAssignmentId(assignmentId);
+
+      // If we have a selected Sunday, update its assignments immediately (optimistic update)
+      if (selectedSunday) {
+        // Create a copy of the selectedSunday with the assignment being deleted removed
+        setSelectedSunday({
+          ...selectedSunday,
+          assignments: selectedSunday.assignments.filter(a => a.id !== assignmentId)
+        });
+      }
+
+      return { assignmentId };
     },
     onSuccess: () => {
       // Refetch the current month's data
@@ -353,8 +371,12 @@ export function RosterBuilder() {
     );
     
     // Check if this person is already assigned to another role in the database assignments
+    // If we just deleted an assignment for this user, don't count it as assigned
     const isAssignedInDatabase = selectedSunday?.assignments.some(
-      assignment => assignment.userId === userId && assignment.roleId !== roleId
+      assignment => 
+        assignment.userId === userId && 
+        assignment.roleId !== roleId && 
+        assignment.id !== lastDeletedAssignmentId // Skip the assignment we just deleted
     );
     
     // If person is already assigned to another role, show an error and prevent assignment
