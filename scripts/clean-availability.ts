@@ -33,7 +33,7 @@ async function cleanDuplicateAvailability() {
     }
 
     // Delete duplicate records
-    await db.delete(availability).where(sql`id = ANY(ARRAY[${duplicates.join(',')}]::integer[])`);
+    await db.delete(availability).where(sql`id = ANY(${duplicates})`);
 
     console.log(`Cleaned up ${duplicates.length} duplicate records`);
 
