@@ -71,7 +71,6 @@ export const finalizedRosters = pgTable("finalized_rosters", {
   isFinalized: boolean("is_finalized").default(false).notNull(),
   finalizedAt: timestamp("finalized_at"),
   finalizedBy: integer("finalized_by"), // User ID who finalized
-  message: text("message"), // Optional message to display with the finalized roster
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({ 
