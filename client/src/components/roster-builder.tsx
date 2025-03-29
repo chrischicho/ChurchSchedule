@@ -695,7 +695,6 @@ export function RosterBuilder() {
     },
     onSuccess: () => {
       setIsFinalizeDialogOpen(false);
-      setFinalizeMessage('');
       
       // Invalidate finalized rosters queries to refresh
       queryClient.invalidateQueries({ queryKey: ['/api/finalized-roster'] });
