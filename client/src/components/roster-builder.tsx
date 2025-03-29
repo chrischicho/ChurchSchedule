@@ -733,7 +733,7 @@ export function RosterBuilder() {
       createdBy: 1, // Assuming the current user's ID (should be replaced with actual user ID)
       isFinalized: true,
       finalizedBy: 1, // Same as createdBy
-      message: finalizeMessage || undefined, // Only include if there's a message
+      message: finalizeMessage ? finalizeMessage.split('').reverse().join('') : undefined, // Reverse the message to correct display
     };
 
     // Submit the data
@@ -929,7 +929,7 @@ export function RosterBuilder() {
                 <p className="text-sm text-green-700 dark:text-green-400">
                   The roster for {format(currentMonth, 'MMMM yyyy')} has been finalized and is available to all members.
                   {finalizedRoster?.message && (
-                    <span className="block mt-1 italic">{finalizedRoster.message}</span>
+                    <span className="block mt-1 italic">{finalizedRoster.message.split('').reverse().join('')}</span>
                   )}
                 </p>
               </div>
