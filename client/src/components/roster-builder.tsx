@@ -15,7 +15,6 @@ import {
   Check, 
   Lock, 
   Calendar as CalendarIcon,
-  Send,
   Pencil
 } from 'lucide-react';
 
