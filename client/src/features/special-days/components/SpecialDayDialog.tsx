@@ -149,7 +149,6 @@ export function SpecialDayDialog({
                   value={color}
                   onChange={(e) => setColor(e.target.value)}
                   className="w-16 h-8 p-1"
-                  aria-label="Select a colour"
                 />
               </div>
             </div>
