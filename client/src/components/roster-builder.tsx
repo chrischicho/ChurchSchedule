@@ -873,18 +873,26 @@ export function RosterBuilder() {
             <label htmlFor="message" className="text-sm font-medium">
               Optional Message (visible to members)
             </label>
-            <textarea
-              id="message"
-              value={finalizeMessage || ''}
-              onChange={(e) => {
-                // Just set the value directly, no reversal needed
-                setFinalizeMessage(e.target.value);
-              }}
-              placeholder={showRefinalize 
-                ? "Explain the changes made to this roster..."
-                : "Add any notes about this month's roster..."}
-              className="w-full min-h-[100px] px-3 py-2 text-sm rounded-md border border-input bg-transparent ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-            />
+            <div className="relative">
+              <textarea
+                id="message"
+                defaultValue={finalizeMessage || ''}
+                ref={(input) => {
+                  if (input) {
+                    input.value = finalizeMessage || '';
+                    // Directly set the current message to state when rendered
+                    input.addEventListener('input', (e) => {
+                      const target = e.target as HTMLTextAreaElement;
+                      setFinalizeMessage(target.value);
+                    });
+                  }
+                }}
+                placeholder={showRefinalize 
+                  ? "Explain the changes made to this roster..."
+                  : "Add any notes about this month's roster..."}
+                className="w-full min-h-[100px] px-3 py-2 text-sm rounded-md border border-input bg-transparent ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+              />
+            </div>
           </div>
         </div>
         
