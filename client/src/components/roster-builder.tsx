@@ -399,15 +399,57 @@ export function RosterBuilder() {
       // If they exist in the database, delete that assignment and store the ID
       // so we can update our local state immediately with the optimistic UI update
       setLastDeletedAssignmentId(existingAssignment.id);
+      
+      // Create a copy of the selectedSunday with the assignment being deleted removed
+      if (selectedSunday) {
+        // Optimistic update - remove from UI immediately
+        setSelectedSunday({
+          ...selectedSunday,
+          assignments: selectedSunday.assignments.filter(a => a.id !== existingAssignment.id)
+        });
+      }
+      
+      // Now send the API request
       deleteAssignmentMutation.mutate({ assignmentId: existingAssignment.id });
       return;
     }
     
-    // Check if this person is already assigned to another role in memory (selected assignments)
-    const isAssignedToAnotherRole = Object.entries(selectedAssignments).some(
-      ([currentRoleId, userIds]) => 
-        parseInt(currentRoleId) !== roleId && userIds.includes(userId)
-    );
+    // Find if user is already assigned to a different role in memory
+    let memoryRoleAssignment: { roleId: string; userIds: number[] } | undefined;
+    
+    for (const [otherRoleId, userIds] of Object.entries(selectedAssignments)) {
+      if (parseInt(otherRoleId) !== roleId && userIds.includes(userId)) {
+        memoryRoleAssignment = { roleId: otherRoleId, userIds };
+        break;
+      }
+    }
+    
+    // If assigned in memory to a different role, handle memory reassignment
+    if (memoryRoleAssignment) {
+      // First, update the assignments to remove from old role
+      setSelectedAssignments(prev => {
+        const updated = { ...prev };
+        
+        // 1. Remove from previous role
+        const oldRoleId = parseInt(memoryRoleAssignment!.roleId);
+        updated[oldRoleId] = updated[oldRoleId].filter(id => id !== userId);
+        
+        // Clean up empty arrays
+        if (updated[oldRoleId].length === 0) {
+          delete updated[oldRoleId];
+        }
+        
+        // 2. Add to new role
+        if (!updated[roleId]) {
+          updated[roleId] = [];
+        }
+        updated[roleId].push(userId);
+        
+        return updated;
+      });
+      
+      return;
+    }
     
     // Check if this person is already assigned to another role in the database
     const existingDifferentRoleAssignment = selectedSunday?.assignments.find(
@@ -417,27 +459,41 @@ export function RosterBuilder() {
         assignment.id !== lastDeletedAssignmentId // Skip the assignment we just deleted
     );
     
-    // Direct role change - delete from one role and add to another in one operation
+    // If assigned in database to different role, handle database reassignment in one step
     if (existingDifferentRoleAssignment) {
-      // Delete the old assignment and immediately add to the new role
-      deleteAssignmentMutation.mutate({
-        assignmentId: existingDifferentRoleAssignment.id,
-        moveToRoleId: roleId,
-        userId: userId
+      // 1. Optimistic update - remove from previous role in UI immediately
+      if (selectedSunday) {
+        // Remove from current view
+        setSelectedSunday(prev => ({
+          ...prev,
+          assignments: prev.assignments.filter(a => a.id !== existingDifferentRoleAssignment.id)
+        }));
+      }
+      
+      // 2. Add to new role in memory
+      setSelectedAssignments(prev => {
+        const updated = { ...prev };
+        if (!updated[roleId]) {
+          updated[roleId] = [];
+        }
+        updated[roleId].push(userId);
+        return updated;
       });
-      return;
-    }
-    
-    // For standard checks (not direct moves), continue with the normal flow
-    const isAssignedInDatabase = !!existingDifferentRoleAssignment;
-    
-    // If person is already assigned to another role, show an error and prevent assignment
-    if (isAssignedToAnotherRole || isAssignedInDatabase) {
-      toast({
-        title: "Person Already Assigned",
-        description: "This person is already assigned to another role. A person can only serve in one role per service.",
-        variant: "destructive",
+      
+      // Delete the old assignment
+      deleteAssignmentMutation.mutate({ 
+        assignmentId: existingDifferentRoleAssignment.id 
       });
+      
+      // Create the new assignment after a small delay to ensure deletion completes
+      setTimeout(() => {
+        createAssignmentMutation.mutate({
+          roleId,
+          userId,
+          serviceDate: selectedSunday?.dateStr || ''
+        });
+      }, 100);
+      
       return;
     }
     
@@ -458,7 +514,7 @@ export function RosterBuilder() {
       return;
     }
     
-    // Proceed with assignment
+    // Proceed with standard new assignment
     setSelectedAssignments(prev => {
       const updated = { ...prev };
       if (!updated[roleId]) {
