@@ -24,8 +24,8 @@ export function NavBar() {
   };
 
   const navItems: NavItem[] = [
-    { href: "/", label: "Availability" },
-    { href: "/roster", label: "Show Availability" },
+    { href: "/", label: "Set Availability" },
+    { href: "/roster", label: "View Roster" },
     { href: "/account", label: "Account" },
     ...(user?.isAdmin ? [{ href: "/admin", label: "Admin" }] : []),
   ];
