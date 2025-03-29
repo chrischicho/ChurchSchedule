@@ -77,8 +77,7 @@ export function RosterBuilder() {
   const [selectedSunday, setSelectedSunday] = useState<SundayData | null>(null);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isFinalizeDialogOpen, setIsFinalizeDialogOpen] = useState(false);
-  const [finalizeMessage, setFinalizeMessage] = useState('');
-  const [selectedAssignments, setSelectedAssignments] = useState<Record<number, number[]>>({}); // Changed to array of user IDs
+  const [selectedAssignments, setSelectedAssignments] = useState<Record<number, number[]>>({}); // Changed to array of user IDs // Changed to array of user IDs
 
   // Get available Sundays with people
   const {
@@ -733,7 +732,6 @@ export function RosterBuilder() {
       createdBy: 1, // Assuming the current user's ID (should be replaced with actual user ID)
       isFinalized: true,
       finalizedBy: 1, // Same as createdBy
-      message: finalizeMessage || undefined, // Use message text directly (already handled in the input)
     };
 
     // Submit the data
@@ -868,38 +866,6 @@ export function RosterBuilder() {
           </DialogDescription>
         </DialogHeader>
         
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <label htmlFor="message" className="text-sm font-medium">
-              Optional Message (visible to members)
-            </label>
-            <div
-              contentEditable
-              id="message"
-              ref={(div) => {
-                if (div) {
-                  // Initialize the content if there's a message
-                  if (finalizeMessage) {
-                    div.textContent = finalizeMessage;
-                  }
-                  
-                  // Add input handler
-                  div.oninput = () => {
-                    setFinalizeMessage(div.textContent || '');
-                  };
-                }
-              }}
-              placeholder={showRefinalize 
-                ? "Explain the changes made to this roster..."
-                : "Add any notes about this month's roster..."}
-              className="w-full min-h-[100px] px-3 py-2 text-sm rounded-md border border-input bg-transparent 
-                ring-offset-background focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary
-                overflow-auto"
-              style={{ whiteSpace: 'pre-wrap' }}
-            ></div>
-          </div>
-        </div>
-        
         <DialogFooter>
           <Button variant="outline" onClick={() => setIsFinalizeDialogOpen(false)}>
             Cancel
@@ -939,9 +905,6 @@ export function RosterBuilder() {
                 <h4 className="font-medium text-green-800 dark:text-green-300">Roster Finalized</h4>
                 <p className="text-sm text-green-700 dark:text-green-400">
                   The roster for {format(currentMonth, 'MMMM yyyy')} has been finalized and is available to all members.
-                  {finalizedRoster?.message && (
-                    <span className="block mt-1 italic">{finalizedRoster.message}</span>
-                  )}
                 </p>
               </div>
             </Alert>
