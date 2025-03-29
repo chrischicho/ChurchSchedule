@@ -877,8 +877,9 @@ export function RosterBuilder() {
               id="message"
               value={finalizeMessage}
               onChange={(e) => {
-                // Set the value directly from the event target
-                setFinalizeMessage(e.target.value);
+                // Use the value property directly which gives the correct input sequence
+                const newValue = e.target.value;
+                setFinalizeMessage(newValue);
               }}
               placeholder={showRefinalize 
                 ? "Explain the changes made to this roster..."
