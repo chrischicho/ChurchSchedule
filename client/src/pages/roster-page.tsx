@@ -164,7 +164,8 @@ export default function RosterPage() {
       case 'last':
         return user.lastName;
       case 'initials':
-        return `${user.firstName[0]}${user.lastName[0]}`;
+        // Use custom initials if available, otherwise generate from name
+        return user.initials || `${user.firstName[0]}${user.lastName[0]}`;
       default:
         return `${user.firstName} ${user.lastName}`;
     }
