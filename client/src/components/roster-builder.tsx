@@ -875,11 +875,10 @@ export function RosterBuilder() {
             </label>
             <textarea
               id="message"
-              value={finalizeMessage ? finalizeMessage.split('').reverse().join('') : ''}
+              value={finalizeMessage || ''}
               onChange={(e) => {
-                // Since the text appears reversed in the input field, we need to reverse it back for saving
-                const newValue = e.target.value.split('').reverse().join('');
-                setFinalizeMessage(newValue);
+                // Just set the value directly, no reversal needed
+                setFinalizeMessage(e.target.value);
               }}
               placeholder={showRefinalize 
                 ? "Explain the changes made to this roster..."
