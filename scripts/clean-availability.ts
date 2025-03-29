@@ -1,7 +1,6 @@
 
 import { db } from '../server/db';
 import { availability } from '../shared/schema';
-import { sql } from 'drizzle-orm';
 
 async function cleanDuplicateAvailability() {
   try {
@@ -14,10 +13,11 @@ async function cleanDuplicateAvailability() {
     );
 
     const seen = new Set<string>();
-    const duplicates = [];
+    const duplicates: number[] = [];
 
     // Find duplicates
     for (const record of records) {
+      // serviceDate is already in YYYY-MM-DD format
       const key = `${record.userId}-${record.serviceDate}`;
       if (seen.has(key)) {
         duplicates.push(record.id);
@@ -32,9 +32,7 @@ async function cleanDuplicateAvailability() {
     }
 
     // Delete duplicate records
-    const result = await db
-      .delete(availability)
-      .where(sql`id = ANY(${duplicates})`);
+    await db.delete(availability).where(sql`id = ANY(${duplicates})`);
 
     console.log(`Cleaned up ${duplicates.length} duplicate records`);
 
