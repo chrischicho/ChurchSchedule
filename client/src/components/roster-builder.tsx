@@ -140,6 +140,45 @@ export function RosterBuilder() {
       });
     }
   });
+  
+  // Mutation for deleting a single roster assignment
+  const deleteAssignmentMutation = useMutation({
+    mutationFn: async (assignmentId: number) => {
+      const response = await fetch(`/api/admin/roster-assignments/${assignmentId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to remove assignment');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      // Refetch the current month's data
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/roster-builder/available-sundays', currentMonth.getFullYear(), currentMonth.getMonth() + 1] 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/roster-assignments/month', currentMonth.getFullYear(), currentMonth.getMonth() + 1] 
+      });
+      
+      toast({
+        title: "Assignment removed",
+        description: "The assignment has been removed successfully.",
+      });
+    },
+    onError: (error) => {
+      console.error("Error removing assignment:", error);
+      toast({
+        title: "Error removing assignment",
+        description: error instanceof Error ? error.message : "Failed to remove assignment. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
 
   // Mutation for deleting all assignments for a date
   const clearDateAssignmentsMutation = useMutation({
@@ -269,7 +308,8 @@ export function RosterBuilder() {
       });
       return;
     }
-    // Check if this person is already assigned to this role, and if so, unassign them
+    
+    // Check if this person is already assigned to this role in memory, and if so, unassign them
     if (selectedAssignments[roleId]?.includes(userId)) {
       setSelectedAssignments(prev => {
         const updated = { ...prev };
@@ -281,6 +321,17 @@ export function RosterBuilder() {
         }
         return updated;
       });
+      return;
+    }
+    
+    // Check if this person is already assigned to this role in the database
+    const existingAssignment = selectedSunday?.assignments.find(
+      a => a.roleId === roleId && a.userId === userId
+    );
+    
+    if (existingAssignment) {
+      // If they exist in the database, delete that assignment
+      deleteAssignmentMutation.mutate(existingAssignment.id);
       return;
     }
     
@@ -1015,12 +1066,23 @@ export function RosterBuilder() {
                                   className={`
                                     border rounded-md p-2 text-sm relative
                                     ${isRosterFinalized ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'} 
-                                    ${selectedAssignments[role.id]?.includes(person.id) ? 'bg-primary/20 border-primary' : isRosterFinalized ? '' : 'hover:bg-muted/50'}
+                                    ${selectedAssignments[role.id]?.includes(person.id) ? 'bg-primary/20 border-primary' : 
+                                      selectedSunday.assignments.some(a => a.roleId === role.id && a.userId === person.id) ? 
+                                      'bg-primary/10 border-primary-muted' : 
+                                      isRosterFinalized ? '' : 'hover:bg-muted/50'
+                                    }
                                   `}
                                   onClick={() => !isRosterFinalized && handleAssignRole(role.id, person.id, role.name)}
                                 >
-                                  <p className="font-medium truncate">{person.formattedName}</p>
-                                  <p className="text-xs text-muted-foreground truncate">{person.initials}</p>
+                                  <div className="flex justify-between items-center">
+                                    <div>
+                                      <p className="font-medium truncate">{person.formattedName}</p>
+                                      <p className="text-xs text-muted-foreground truncate">{person.initials}</p>
+                                    </div>
+                                    {selectedSunday.assignments.some(a => a.roleId === role.id && a.userId === person.id) && (
+                                      <Badge variant="outline" className="text-xs">DB</Badge>
+                                    )}
+                                  </div>
                                 </div>
                               );
                             }
@@ -1082,8 +1144,18 @@ export function RosterBuilder() {
       
       {/* Loading overlay for mutations */}
       <LoaderOverlay 
-        isLoading={createAssignmentMutation.isPending || clearDateAssignmentsMutation.isPending} 
-        loadingText={createAssignmentMutation.isPending ? "Saving assignments..." : "Clearing assignments..."}
+        isLoading={
+          createAssignmentMutation.isPending || 
+          clearDateAssignmentsMutation.isPending || 
+          deleteAssignmentMutation.isPending
+        } 
+        loadingText={
+          createAssignmentMutation.isPending 
+            ? "Saving assignments..." 
+            : deleteAssignmentMutation.isPending 
+              ? "Removing assignment..." 
+              : "Clearing assignments..."
+        }
         type="calendar"
       />
     </div>
