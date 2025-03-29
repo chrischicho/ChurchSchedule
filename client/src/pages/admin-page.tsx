@@ -232,7 +232,7 @@ function SpecialDaysList({
           <tbody>
             {specialDays.map((specialDay) => (
               <tr key={specialDay.id} className="border-b">
-                <td className="p-3">{format(new Date(specialDay.date), "MMMM d, yyyy")}</td>
+                <td className="p-3">{format(new Date(specialDay.date), "d MMMM yyyy")}</td>
                 <td className="p-3 font-medium">{specialDay.name}</td>
                 <td className="p-3 text-muted-foreground">{specialDay.description || "-"}</td>
                 <td className="p-3">
@@ -415,7 +415,7 @@ function SpecialDayDialog({
                           className="w-full pl-3 text-left font-normal"
                         >
                           {field.value ? (
-                            format(field.value, "PPP")
+                            format(field.value, "d MMMM yyyy")
                           ) : (
                             <span>Pick a date</span>
                           )}

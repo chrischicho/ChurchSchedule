@@ -32,7 +32,7 @@ export function SpecialDaysTable({ specialDays, onEdit, onDelete }: SpecialDaysT
         <tbody>
           {specialDays.map((specialDay) => (
             <tr key={specialDay.id} className="border-b">
-              <td className="p-3">{format(new Date(specialDay.date), "MMMM d, yyyy")}</td>
+              <td className="p-3">{format(new Date(specialDay.date), "d MMMM yyyy")}</td>
               <td className="p-3 font-medium">{specialDay.name}</td>
               <td className="p-3 text-muted-foreground">{specialDay.description || "-"}</td>
               <td className="p-3">
