@@ -733,7 +733,7 @@ export function RosterBuilder() {
       createdBy: 1, // Assuming the current user's ID (should be replaced with actual user ID)
       isFinalized: true,
       finalizedBy: 1, // Same as createdBy
-      message: finalizeMessage ? finalizeMessage.split('').reverse().join('') : undefined, // Reverse the message to correct display
+      message: finalizeMessage || undefined, // Use message text directly (already handled in the input)
     };
 
     // Submit the data
@@ -875,10 +875,10 @@ export function RosterBuilder() {
             </label>
             <textarea
               id="message"
-              value={finalizeMessage}
+              value={finalizeMessage ? finalizeMessage.split('').reverse().join('') : ''}
               onChange={(e) => {
-                // Use the value property directly which gives the correct input sequence
-                const newValue = e.target.value;
+                // Since the text appears reversed in the input field, we need to reverse it back for saving
+                const newValue = e.target.value.split('').reverse().join('');
                 setFinalizeMessage(newValue);
               }}
               placeholder={showRefinalize 
@@ -929,7 +929,7 @@ export function RosterBuilder() {
                 <p className="text-sm text-green-700 dark:text-green-400">
                   The roster for {format(currentMonth, 'MMMM yyyy')} has been finalized and is available to all members.
                   {finalizedRoster?.message && (
-                    <span className="block mt-1 italic">{finalizedRoster.message.split('').reverse().join('')}</span>
+                    <span className="block mt-1 italic">{finalizedRoster.message}</span>
                   )}
                 </p>
               </div>
