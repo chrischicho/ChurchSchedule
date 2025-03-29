@@ -357,9 +357,8 @@ export function RosterBuilder() {
       assignedCount += selectedAssignments[roleId].length;
     }
     
-    // When we're exactly at the limit, still allow clicking to select
-    // The notice will only show when trying to exceed the limit
-    return assignedCount > maxAllowed;
+    // Check if we've reached or exceeded the maximum limit
+    return assignedCount >= maxAllowed;
   };
 
   // Handle role assignment
@@ -502,8 +501,8 @@ export function RosterBuilder() {
     const totalCurrentCount = currentAssignedCount + existingDatabaseCount;
     const maxLimit = ROLE_LIMITS[roleName] || 1;
     
-    // Only show warning when trying to exceed the limit (not when exactly at the limit)
-    if (totalCurrentCount > maxLimit) {
+    // Show warning when trying to exceed the limit
+    if (totalCurrentCount >= maxLimit) {
       toast({
         title: `Maximum ${roleName} Limit Exceeded`,
         description: `You can only assign up to ${maxLimit} ${roleName}${maxLimit > 1 ? 's' : ''}. 
