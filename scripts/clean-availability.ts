@@ -33,8 +33,8 @@ async function cleanDuplicateAvailability() {
     }
 
     if (duplicates.length > 0) {
-      // Delete duplicate records using PostgreSQL array syntax
-      await db.delete(availability).where(sql`id = ANY(ARRAY[${duplicates.join(',')}]::int[])`);
+      // Delete duplicate records
+      await db.delete(availability).where(sql`id IN (${sql.join(duplicates)})`);
       console.log(`Cleaned up ${duplicates.length} duplicate records`);
     } else {
       console.log("No duplicate records found");
