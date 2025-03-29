@@ -1,22 +1,22 @@
 #!/usr/bin/env node
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const filePath = path.join(__dirname, 'roster-page.tsx');
 const content = fs.readFileSync(filePath, 'utf8');
 
-// Fix date format and remove line break
-const updatedContent = content
-  // Update date formats throughout the file to match Australian format
-  .replace(/format\(.*?, "MMMM d, yyyy"\)/g, match => {
-    return match.replace('"MMMM d, yyyy"', '"d MMMM yyyy"');
-  })
-  // Fix the alert description text (joining the lines and maintaining indentation)
+// Replace the broken string in both locations
+const fixedContent = content
+  // Fix line 408-410
   .replace(
-    /This roster was finalized on {format\(.*?\)} \n            and is ready for service\./g,
-    match => match.replace(" \n            and", " and")
+    /This roster was finalized on {format\([^}]+\), "d MMMM yyyy"\)} \nand is ready for service\./g,
+    'This roster was finalized on {format(new Date(finalizedRosterData.finalizedRoster.finalizedAt || finalizedRosterData.finalizedRoster.createdAt), "d MMMM yyyy")} and is ready for service.'
   );
 
-fs.writeFileSync(filePath, updatedContent, 'utf8');
-console.log('File updated successfully');
+fs.writeFileSync(filePath, fixedContent, 'utf8');
+console.log('Fixed spacing issues in the roster page');
