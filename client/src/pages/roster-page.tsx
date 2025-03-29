@@ -407,7 +407,7 @@ export default function RosterPage() {
           <AlertTitle>Finalized Roster</AlertTitle>
           <AlertDescription>
             This roster was finalized on {format(new Date(finalizedRosterData.finalizedRoster.finalizedAt || finalizedRosterData.finalizedRoster.createdAt), "d MMMM yyyy")} 
-            and is ready for service.
+and is ready for service.
           </AlertDescription>
         </Alert>
         
@@ -520,7 +520,7 @@ export default function RosterPage() {
           <AlertTitle>Finalized Roster</AlertTitle>
           <AlertDescription>
             This roster was finalized on {format(new Date(finalizedRosterData.finalizedRoster.finalizedAt || finalizedRosterData.finalizedRoster.createdAt), "d MMMM yyyy")} 
-            and is ready for service.
+and is ready for service.
           </AlertDescription>
         </Alert>
         
