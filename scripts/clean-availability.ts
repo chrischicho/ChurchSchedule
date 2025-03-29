@@ -32,10 +32,13 @@ async function cleanDuplicateAvailability() {
       return;
     }
 
-    // Delete duplicate records
-    await db.delete(availability).where(sql`id = ANY(${duplicates})`);
-
-    console.log(`Cleaned up ${duplicates.length} duplicate records`);
+    if (duplicates.length > 0) {
+      // Delete duplicate records
+      await db.delete(availability).where(sql`id = ANY(${sql.array(duplicates, 'int4')})`);
+      console.log(`Cleaned up ${duplicates.length} duplicate records`);
+    } else {
+      console.log("No duplicate records found");
+    }
 
   } catch (error) {
     console.error("Error cleaning duplicate availability:", error);
