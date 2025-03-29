@@ -1198,7 +1198,18 @@ export function RosterBuilder() {
                                       <p className="text-xs text-muted-foreground truncate">{person.initials}</p>
                                     </div>
                                     {selectedSunday.assignments.some(a => a.roleId === role.id && a.userId === person.id) && (
-                                      <Badge variant="outline" className="text-xs">DB</Badge>
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <Badge variant="outline" className="text-xs px-1.5 py-0.5">
+                                              <Check className="h-3 w-3 text-green-600" />
+                                            </Badge>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p className="text-xs">Saved assignment</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
                                     )}
                                   </div>
                                 </div>
