@@ -4,6 +4,8 @@ import { useToast } from '@/hooks/use-toast';
 import { format, addMonths, subMonths } from 'date-fns';
 import { User, ServiceRole, InsertFinalizedRoster } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 // Import individual icons instead of the entire library
 import ChevronLeft from 'lucide-react/dist/esm/icons/chevron-left';
 import ChevronRight from 'lucide-react/dist/esm/icons/chevron-right';
@@ -731,10 +733,14 @@ export function RosterBuilder() {
       createdBy: 1, // Assuming the current user's ID (should be replaced with actual user ID)
       isFinalized: true,
       finalizedBy: 1, // Same as createdBy
+      notificationMessage: notificationMessage.trim() || undefined, // Add notification message if provided
     };
 
     // Submit the data
     finalizeRosterMutation.mutate(finalizeData);
+    
+    // Reset the notification message
+    setNotificationMessage("");
   };
   
   // Mutation for revoking the finalized status
@@ -849,7 +855,9 @@ export function RosterBuilder() {
     );
   }
 
-  // Finalize roster confirmation dialog
+  // Finalize roster confirmation dialog with optional message
+  const [notificationMessage, setNotificationMessage] = useState("");
+  
   const FinalizeRosterDialog = () => (
     <Dialog open={isFinalizeDialogOpen} onOpenChange={setIsFinalizeDialogOpen}>
       <DialogContent>
@@ -864,6 +872,22 @@ export function RosterBuilder() {
               : "Finalizing the roster will make it visible to all members. This should be done when all assignments for the month are completed."}
           </DialogDescription>
         </DialogHeader>
+        
+        <div className="py-4">
+          <div className="space-y-2">
+            <Label htmlFor="notification-message">Optional Message</Label>
+            <Textarea
+              id="notification-message"
+              placeholder="Add a message to display with this roster (optional)"
+              className="resize-none"
+              value={notificationMessage}
+              onChange={(e) => setNotificationMessage(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              This message will be shown to members when they view the roster.
+            </p>
+          </div>
+        </div>
         
         <DialogFooter>
           <Button variant="outline" onClick={() => setIsFinalizeDialogOpen(false)}>
