@@ -250,7 +250,7 @@ export default function RosterPage() {
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
                     <h3 className="font-medium text-lg flex items-center gap-2">
-                      {format(sunday, "d MMMM yyyy")}
+                      {format(sunday, "MMMM d, yyyy")}
                       {specialDay && (
                         <Badge 
                           style={{ 
@@ -334,7 +334,7 @@ export default function RosterPage() {
             return (
               <TableRow key={date} style={rowStyle}>
                 <TableCell className="font-medium">
-                  {format(sunday, "d MMMM yyyy")}
+                  {format(sunday, "MMMM d, yyyy")}
                 </TableCell>
                 <TableCell>
                   {specialDay ? (
@@ -406,7 +406,7 @@ export default function RosterPage() {
           <Check className="h-4 w-4 text-primary" />
           <AlertTitle>Finalized Roster</AlertTitle>
           <AlertDescription>
-            This roster was finalized on {format(new Date(finalizedRosterData.finalizedRoster.finalizedAt || finalizedRosterData.finalizedRoster.createdAt), "d MMMM yyyy")} 
+            This roster was finalized on {format(new Date(finalizedRosterData.finalizedRoster.finalizedAt || finalizedRosterData.finalizedRoster.createdAt), "MMMM d, yyyy")} 
             and is ready for service.
           </AlertDescription>
         </Alert>
@@ -444,7 +444,7 @@ export default function RosterPage() {
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
                       <h3 className="font-medium text-lg flex items-center gap-2">
-                        {format(sunday, "d MMMM yyyy")}
+                        {format(sunday, "MMMM d, yyyy")}
                         {specialDay && (
                           <Badge 
                             style={{ 
@@ -519,7 +519,7 @@ export default function RosterPage() {
           <Check className="h-4 w-4 text-primary" />
           <AlertTitle>Finalized Roster</AlertTitle>
           <AlertDescription>
-            This roster was finalized on {format(new Date(finalizedRosterData.finalizedRoster.finalizedAt || finalizedRosterData.finalizedRoster.createdAt), "d MMMM yyyy")} 
+            This roster was finalized on {format(new Date(finalizedRosterData.finalizedRoster.finalizedAt || finalizedRosterData.finalizedRoster.createdAt), "MMMM d, yyyy")} 
             and is ready for service.
           </AlertDescription>
         </Alert>
@@ -555,7 +555,7 @@ export default function RosterPage() {
                 return (
                   <TableRow key={dateStr} style={rowStyle}>
                     <TableCell className="font-medium">
-                      {format(sunday, "d MMMM yyyy")}
+                      {format(sunday, "MMMM d, yyyy")}
                     </TableCell>
                     <TableCell>
                       {specialDay ? (
