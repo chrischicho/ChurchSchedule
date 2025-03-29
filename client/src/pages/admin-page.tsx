@@ -225,7 +225,7 @@ function SpecialDaysList({
               <th className="p-3 text-left">Date</th>
               <th className="p-3 text-left">Name</th>
               <th className="p-3 text-left">Description</th>
-              <th className="p-3 text-left">Color</th>
+              <th className="p-3 text-left">Colour</th>
               <th className="p-3 text-right">Actions</th>
             </tr>
           </thead>
@@ -238,10 +238,9 @@ function SpecialDaysList({
                 <td className="p-3">
                   <div className="flex items-center">
                     <div 
-                      className="w-5 h-5 rounded-full mr-2" 
+                      className="w-5 h-5 rounded-full" 
                       style={{ backgroundColor: specialDay.color }} 
                     />
-                    {specialDay.color}
                   </div>
                 </td>
                 <td className="p-3 text-right">
@@ -396,7 +395,7 @@ function SpecialDayDialog({
         <DialogHeader>
           <DialogTitle>{isEditing ? "Edit Special Sunday" : "Add Special Sunday"}</DialogTitle>
           <DialogDescription>
-            Mark a Sunday as special with a name, description, and custom color.
+            Mark a Sunday as special with a name, description, and custom colour.
           </DialogDescription>
         </DialogHeader>
         
@@ -471,7 +470,7 @@ function SpecialDayDialog({
               name="color"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Color</FormLabel>
+                  <FormLabel>Colour</FormLabel>
                   <div className="flex items-center gap-2">
                     <div 
                       className="w-8 h-8 rounded-full border" 
