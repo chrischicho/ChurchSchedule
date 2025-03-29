@@ -146,7 +146,8 @@ export function RosterBuilder() {
 
   // Mutation for deleting a single roster assignment
   const deleteAssignmentMutation = useMutation({
-    mutationFn: async (assignmentId: number) => {
+    mutationFn: async (params: { assignmentId: number, moveToRoleId?: number, userId?: number }) => {
+      const { assignmentId } = params;
       const response = await fetch(`/api/admin/roster-assignments/${assignmentId}`, {
         method: 'DELETE',
         credentials: 'include'
@@ -163,14 +164,20 @@ export function RosterBuilder() {
       }
       
       try {
-        return await response.json();
+        const result = await response.json();
+        return { result, params };
       } catch (parseError) {
         // This is a fallback in case the server doesn't return JSON
         console.warn('Server returned non-JSON response on successful deletion');
-        return { message: 'Assignment deleted successfully' };
+        return { 
+          result: { message: 'Assignment deleted successfully' },
+          params
+        };
       }
     },
-    onMutate: (assignmentId: number) => {
+    onMutate: (params: { assignmentId: number, moveToRoleId?: number, userId?: number }) => {
+      const { assignmentId } = params;
+      
       // Save the assignment ID being deleted
       setLastDeletedAssignmentId(assignmentId);
 
@@ -183,20 +190,34 @@ export function RosterBuilder() {
         });
       }
 
-      return { assignmentId };
+      return { params };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      const { params } = data;
+      const { moveToRoleId, userId } = params;
+      
+      // If we need to move to another role, do that now
+      if (moveToRoleId !== undefined && userId !== undefined && selectedSunday) {
+        // Automatically assign to new role after successful deletion
+        createAssignmentMutation.mutate({
+          roleId: moveToRoleId,
+          userId,
+          serviceDate: selectedSunday.dateStr
+        });
+      } else {
+        // Only show toast for pure deletion (not role change)
+        toast({
+          title: "Assignment removed",
+          description: "The assignment has been removed successfully.",
+        });
+      }
+      
       // Refetch the current month's data
       queryClient.invalidateQueries({ 
         queryKey: ['/api/roster-builder/available-sundays', currentMonth.getFullYear(), currentMonth.getMonth() + 1] 
       });
       queryClient.invalidateQueries({ 
         queryKey: ['/api/roster-assignments/month', currentMonth.getFullYear(), currentMonth.getMonth() + 1] 
-      });
-      
-      toast({
-        title: "Assignment removed",
-        description: "The assignment has been removed successfully.",
       });
     },
     onError: (error) => {
@@ -378,24 +399,37 @@ export function RosterBuilder() {
       // If they exist in the database, delete that assignment and store the ID
       // so we can update our local state immediately with the optimistic UI update
       setLastDeletedAssignmentId(existingAssignment.id);
-      deleteAssignmentMutation.mutate(existingAssignment.id);
+      deleteAssignmentMutation.mutate({ assignmentId: existingAssignment.id });
       return;
     }
     
-    // Check if this person is already assigned to another role in the selected assignments
+    // Check if this person is already assigned to another role in memory (selected assignments)
     const isAssignedToAnotherRole = Object.entries(selectedAssignments).some(
       ([currentRoleId, userIds]) => 
         parseInt(currentRoleId) !== roleId && userIds.includes(userId)
     );
     
-    // Check if this person is already assigned to another role in the database assignments
-    // If we just deleted an assignment for this user, don't count it as assigned
-    const isAssignedInDatabase = selectedSunday?.assignments.some(
+    // Check if this person is already assigned to another role in the database
+    const existingDifferentRoleAssignment = selectedSunday?.assignments.find(
       assignment => 
         assignment.userId === userId && 
-        assignment.roleId !== roleId && 
+        assignment.roleId !== roleId &&
         assignment.id !== lastDeletedAssignmentId // Skip the assignment we just deleted
     );
+    
+    // Direct role change - delete from one role and add to another in one operation
+    if (existingDifferentRoleAssignment) {
+      // Delete the old assignment and immediately add to the new role
+      deleteAssignmentMutation.mutate({
+        assignmentId: existingDifferentRoleAssignment.id,
+        moveToRoleId: roleId,
+        userId: userId
+      });
+      return;
+    }
+    
+    // For standard checks (not direct moves), continue with the normal flow
+    const isAssignedInDatabase = !!existingDifferentRoleAssignment;
     
     // If person is already assigned to another role, show an error and prevent assignment
     if (isAssignedToAnotherRole || isAssignedInDatabase) {
