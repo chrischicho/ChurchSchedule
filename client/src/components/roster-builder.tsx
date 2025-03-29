@@ -150,11 +150,22 @@ export function RosterBuilder() {
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to remove assignment');
+        try {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to remove assignment');
+        } catch (parseError) {
+          // Handle case where response isn't valid JSON
+          throw new Error('Failed to remove assignment: server returned an invalid response');
+        }
       }
       
-      return response.json();
+      try {
+        return await response.json();
+      } catch (parseError) {
+        // This is a fallback in case the server doesn't return JSON
+        console.warn('Server returned non-JSON response on successful deletion');
+        return { message: 'Assignment deleted successfully' };
+      }
     },
     onSuccess: () => {
       // Refetch the current month's data

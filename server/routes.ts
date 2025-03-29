@@ -951,7 +951,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       await storage.deleteRosterAssignment(id);
-      res.sendStatus(200);
+      // Return a JSON response instead of text "OK"
+      res.status(200).json({ message: "Assignment deleted successfully" });
     } catch (err) {
       console.error("Error deleting roster assignment:", err);
       res.status(500).json({ message: "Failed to delete roster assignment" });
