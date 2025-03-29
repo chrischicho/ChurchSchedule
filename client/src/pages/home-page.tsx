@@ -154,7 +154,7 @@ export default function HomePage() {
                       />
                       <div>
                         <h3 className="font-medium flex items-center gap-2">
-                          {format(sunday, "MMMM d, yyyy")}
+                          {format(sunday, "d MMMM yyyy")}
                           {specialDay && (
                             <Badge 
                               style={{ 
