@@ -7,7 +7,7 @@ import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
 import HomePage from "@/pages/home-page";
 import RosterPage from "@/pages/roster-page";
-import AdminPage from "@/pages/admin"; // Using our new modular admin page
+import AdminPage from "@/pages/admin-page";
 import AccountPage from "@/pages/account-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { FirstLoginModal } from "@/components/first-login-modal";
