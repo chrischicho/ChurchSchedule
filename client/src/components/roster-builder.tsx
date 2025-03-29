@@ -4,19 +4,18 @@ import { useToast } from '@/hooks/use-toast';
 import { format, addMonths, subMonths } from 'date-fns';
 import { User, ServiceRole, InsertFinalizedRoster } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  Trash2, 
-  Save, 
-  AlertTriangle, 
-  Info, 
-  AlertCircle, 
-  Check, 
-  Lock, 
-  Calendar as CalendarIcon,
-  Pencil
-} from 'lucide-react';
+// Import individual icons instead of the entire library
+import ChevronLeft from 'lucide-react/dist/esm/icons/chevron-left';
+import ChevronRight from 'lucide-react/dist/esm/icons/chevron-right';
+import Trash2 from 'lucide-react/dist/esm/icons/trash-2';
+import Save from 'lucide-react/dist/esm/icons/save';
+import AlertTriangle from 'lucide-react/dist/esm/icons/alert-triangle';
+import Info from 'lucide-react/dist/esm/icons/info';
+import AlertCircle from 'lucide-react/dist/esm/icons/alert-circle';
+import Check from 'lucide-react/dist/esm/icons/check';
+import Lock from 'lucide-react/dist/esm/icons/lock';
+import CalendarIcon from 'lucide-react/dist/esm/icons/calendar';
+import Pencil from 'lucide-react/dist/esm/icons/pencil';
 
 // Define role maximum limits
 const ROLE_LIMITS: Record<string, number> = {
@@ -461,10 +460,13 @@ export function RosterBuilder() {
       // 1. Optimistic update - remove from previous role in UI immediately
       if (selectedSunday) {
         // Remove from current view
-        setSelectedSunday(prev => ({
-          ...prev,
-          assignments: prev.assignments.filter(a => a.id !== existingDifferentRoleAssignment.id)
-        }));
+        setSelectedSunday(prev => {
+          if (!prev) return prev; // Handle null case
+          return {
+            ...prev,
+            assignments: prev.assignments.filter(a => a.id !== existingDifferentRoleAssignment.id)
+          };
+        });
       }
       
       // 2. Add to new role in memory
