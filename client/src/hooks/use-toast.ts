@@ -6,7 +6,7 @@ import type {
 } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+const TOAST_REMOVE_DELAY = 5000 // 5 seconds auto-dismiss
 
 type ToasterToast = ToastProps & {
   id: string
@@ -160,6 +160,9 @@ function toast({ ...props }: Toast) {
       },
     },
   })
+  
+  // Automatically add to dismiss queue when toast is created
+  addToRemoveQueue(id)
 
   return {
     id: id,
