@@ -503,7 +503,7 @@ export function RosterBuilder() {
     const maxLimit = ROLE_LIMITS[roleName] || 1;
     
     // Only show warning when trying to exceed the limit (not when exactly at the limit)
-    if (totalCurrentCount >= maxLimit) {
+    if (totalCurrentCount > maxLimit) {
       toast({
         title: `Maximum ${roleName} Limit Exceeded`,
         description: `You can only assign up to ${maxLimit} ${roleName}${maxLimit > 1 ? 's' : ''}. 
