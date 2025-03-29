@@ -876,7 +876,10 @@ export function RosterBuilder() {
             <textarea
               id="message"
               value={finalizeMessage}
-              onChange={(e) => setFinalizeMessage(e.target.value)}
+              onChange={(e) => {
+                // Set the value directly from the event target
+                setFinalizeMessage(e.target.value);
+              }}
               placeholder={showRefinalize 
                 ? "Explain the changes made to this roster..."
                 : "Add any notes about this month's roster..."}
