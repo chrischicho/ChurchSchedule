@@ -285,6 +285,22 @@ export function RosterBuilder() {
       setSelectedAssignments({});
     }
   }, [selectedSunday]);
+  
+  // Keep selectedSunday in sync with sundaysData changes
+  // This ensures we have the latest data after API calls
+  useEffect(() => {
+    if (sundaysData && selectedSunday) {
+      // Find the currently selected Sunday in the updated data
+      const updatedSunday = sundaysData.find((sunday: SundayData) => 
+        sunday.dateStr === selectedSunday.dateStr
+      );
+      
+      if (updatedSunday) {
+        // Update with latest data from the API
+        setSelectedSunday(updatedSunday);
+      }
+    }
+  }, [sundaysData, selectedSunday?.dateStr]);
 
   // Navigate between months
   const handlePreviousMonth = () => {
@@ -359,7 +375,9 @@ export function RosterBuilder() {
     );
     
     if (existingAssignment) {
-      // If they exist in the database, delete that assignment
+      // If they exist in the database, delete that assignment and store the ID
+      // so we can update our local state immediately with the optimistic UI update
+      setLastDeletedAssignmentId(existingAssignment.id);
       deleteAssignmentMutation.mutate(existingAssignment.id);
       return;
     }
