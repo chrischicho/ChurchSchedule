@@ -267,7 +267,13 @@ export function RosterPDF({ month, rosterData, serviceRoster, viewType = "card",
   }
   
   // Format for display in the roster
-  const formatName = (user: User) => `${user.firstName} ${user.lastName}`;
+  const formatName = (user: User) => {
+    if (viewType === "simple" && user.initials) {
+      // Use custom initials when in simple view
+      return user.initials;
+    }
+    return `${user.firstName} ${user.lastName}`;
+  };
 
   // Add role-specific styles with enhanced design
   const roleStyles = StyleSheet.create({
