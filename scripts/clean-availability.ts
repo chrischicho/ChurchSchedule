@@ -18,7 +18,7 @@ async function cleanDuplicateAvailability() {
 
     // Find duplicates
     for (const record of records) {
-      const key = `${record.userId}-${record.serviceDate.toISOString().split('T')[0]}`;
+      const key = `${record.userId}-${record.serviceDate}`;
       if (seen.has(key)) {
         duplicates.push(record.id);
       } else {
