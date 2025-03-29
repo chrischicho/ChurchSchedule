@@ -3,7 +3,9 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Logo } from "./logo";
 import { Button } from "./ui/button";
-import { LogOut, Menu } from "lucide-react";
+// Import individual icons instead of entire library
+import LogOut from "lucide-react/dist/esm/icons/log-out";
+import Menu from "lucide-react/dist/esm/icons/menu";
 import {
   Sheet,
   SheetContent,
