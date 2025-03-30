@@ -1152,7 +1152,9 @@ export function RosterBuilder() {
                             it will only be shown via a toast when the user tries to exceed the limit */}
                         
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mt-3">
-                          {selectedSunday.availablePeople.map(person => {
+                          {[...selectedSunday.availablePeople]
+                            .sort((a, b) => a.lastName.localeCompare(b.lastName) || a.firstName.localeCompare(b.firstName))
+                            .map(person => {
                             // Check if person is already assigned to another role
                             const isAssignedElsewhere = selectedSunday.assignments.some(a => a.userId === person.id && a.roleId !== role.id) || 
                                                       Object.entries(selectedAssignments).some(([otherRoleId, userIds]) => 
