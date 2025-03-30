@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { format, startOfMonth, addMonths, eachDayOfInterval, isSunday, subMonths } from "date-fns";
+import { getDefaultMonth } from "@/lib/date-utils";
 import { queryClient } from "@/lib/queryClient";
 import { apiRequest } from "@/lib/api";
 import { Availability, SpecialDay } from "@shared/schema";
@@ -16,7 +17,7 @@ import { ChurchLoader } from "@/components/church-loader";
 import { LoaderOverlay } from "@/components/loader-overlay";
 
 export default function HomePage() {
-  const [selectedMonth, setSelectedMonth] = useState(startOfMonth(new Date()));
+  const [selectedMonth, setSelectedMonth] = useState(getDefaultMonth());
   const { toast } = useToast();
   const { user } = useAuth();
 

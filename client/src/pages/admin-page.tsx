@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { format, addMonths, subMonths } from "date-fns";
+import { getDefaultMonth } from "@/lib/date-utils";
 import { NavBar } from "@/components/nav-bar";
 import { Button } from "@/components/ui/button";
 import {
