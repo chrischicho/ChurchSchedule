@@ -58,10 +58,12 @@ type SundayData = {
   roles: ServiceRole[];
 };
 
+import { getDefaultMonth } from "@/lib/date-utils";
+
 export function RosterBuilder() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+  const [currentMonth, setCurrentMonth] = useState<Date>(getDefaultMonth());
   const [selectedSunday, setSelectedSunday] = useState<SundayData | null>(null);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isFinalizeDialogOpen, setIsFinalizeDialogOpen] = useState(false);

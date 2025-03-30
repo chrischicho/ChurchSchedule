@@ -22,6 +22,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { format, startOfMonth, addMonths, eachDayOfInterval, isSunday, subMonths } from "date-fns";
+import { getDefaultMonth } from "@/lib/date-utils";
 import { Availability, User, SpecialDay, FinalizedRoster, RosterAssignment, ServiceRole } from "@shared/schema";
 import { 
   ChevronLeft, 
@@ -74,7 +75,7 @@ interface FinalizedRosterResponse {
 
 export default function RosterPage() {
   const queryClient = useQueryClient();
-  const [selectedMonth, setSelectedMonth] = useState(startOfMonth(new Date()));
+  const [selectedMonth, setSelectedMonth] = useState(getDefaultMonth());
   const [viewType, setViewType] = useState<ViewType>('card');
   const [showDeadlineNotice, setShowDeadlineNotice] = useState(false);
   const [availableMonths, setAvailableMonths] = useState<Date[]>([]);
