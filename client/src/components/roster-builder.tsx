@@ -1153,7 +1153,7 @@ export function RosterBuilder() {
                         
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mt-3">
                           {[...selectedSunday.availablePeople]
-                            .sort((a, b) => a.lastName.localeCompare(b.lastName) || a.firstName.localeCompare(b.firstName))
+                            .sort((a, b) => a.firstName.localeCompare(b.firstName))
                             .map(person => {
                             // Check if person is already assigned to another role
                             const isAssignedElsewhere = selectedSunday.assignments.some(a => a.userId === person.id && a.roleId !== role.id) || 
