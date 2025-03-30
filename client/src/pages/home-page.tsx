@@ -53,9 +53,16 @@ export default function HomePage() {
   });
 
   // Get all days in the interval and filter for Sundays
+  // Use the last day of the month as the end date instead of the first day of the next month
+  const lastDayOfMonth = new Date(
+    selectedMonth.getFullYear(),
+    selectedMonth.getMonth() + 1,
+    0
+  );
+  
   const sundays = eachDayOfInterval({
     start: selectedMonth,
-    end: addMonths(selectedMonth, 1),
+    end: lastDayOfMonth,
   }).filter(day => isSunday(day));
 
   // Check if any data is still loading
