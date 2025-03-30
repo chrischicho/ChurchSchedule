@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { format, startOfMonth, addMonths, eachDayOfInterval, isSunday, subMonths } from "date-fns";
 import { queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/api";
 import { Availability, SpecialDay } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { ChevronLeft, ChevronRight, Calendar, User, Sun } from "lucide-react";
@@ -30,24 +31,14 @@ export default function HomePage() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: { serviceDate: string; isAvailable: boolean }) => {
-      const response = await fetch("/api/availability", {
+      return await apiRequest("/api/availability", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        data: {
           serviceDate: data.serviceDate,
           isAvailable: data.isAvailable,
           userId: user?.id,
-        }),
-        credentials: "include",
+        }
       });
-      
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`${response.status}: ${text || response.statusText}`);
-      }
-      
-      // Parse the response as JSON
-      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/availability"] });
