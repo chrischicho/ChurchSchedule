@@ -504,10 +504,10 @@ export function RosterBuilder() {
     // Show warning when trying to exceed the limit
     if (totalCurrentCount >= maxLimit) {
       toast({
-        title: `Maximum ${roleName} Limit Exceeded`,
-        description: `You can only assign up to ${maxLimit} ${roleName}${maxLimit > 1 ? 's' : ''}. 
-                      Please remove an existing ${roleName} before adding a new one.`,
-        variant: "destructive",
+        title: `${roleName} Limit Reached`,
+        description: `This service has a limit of ${maxLimit} ${roleName}${maxLimit > 1 ? 's' : ''}. 
+                      To add another, please remove one of the existing assignments first.`,
+        variant: "default",
       });
       return;
     }
@@ -1107,11 +1107,13 @@ export function RosterBuilder() {
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Badge 
-                                      variant={isRoleFull(role.id, role.name) ? "destructive" : "outline"} 
-                                      className="text-xs py-0 h-5"
+                                      variant="outline" 
+                                      className={`text-xs py-0 h-5 ${isRoleFull(role.id, role.name) 
+                                        ? "border-amber-200 bg-amber-50 text-amber-700" 
+                                        : "text-muted-foreground"}`}
                                     >
                                       {isRoleFull(role.id, role.name) ? (
-                                        <>Max {role.maxLimit || 1}</>
+                                        <>Limit: {role.maxLimit || 1}</>
                                       ) : (
                                         <>Limit: {role.maxLimit || 1}</>
                                       )}
