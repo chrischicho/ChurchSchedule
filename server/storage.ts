@@ -778,21 +778,20 @@ export class DatabaseStorage implements IStorage {
       return sundays.map(sunday => {
         const dateStr = this.formatDateToString(sunday);
         
-        // Find people who marked themselves as available for this Sunday
-        const peopleWithAvailability = sundayAvailability
+        // Find available people for this Sunday
+        const availablePeople = sundayAvailability
           .filter(record => {
             const recordDateStr = this.formatDateToString(record.serviceDate);
             return recordDateStr === dateStr;
           })
-          .map(record => record.userId);
-        
-        // Get all users for the roster builder
-        // This includes both users who have marked availability and those who haven't
-        const availablePeople = allUsers
-          .map(user => ({
-            ...user,
-            formattedName: this.formatUserName(user)
-          }));
+          .map(record => {
+            const user = userMap.get(record.userId);
+            return user ? {
+              ...user,
+              formattedName: this.formatUserName(user)
+            } : null;
+          })
+          .filter(user => user !== null);
         
         // Get assignments for this Sunday
         const assignments = assignmentsByDate[dateStr] || [];
