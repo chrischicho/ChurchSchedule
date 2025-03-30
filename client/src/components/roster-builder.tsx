@@ -17,18 +17,8 @@ import Lock from 'lucide-react/dist/esm/icons/lock';
 import CalendarIcon from 'lucide-react/dist/esm/icons/calendar';
 import Pencil from 'lucide-react/dist/esm/icons/pencil';
 
-// Define role maximum limits
-const ROLE_LIMITS: Record<string, number> = {
-  'Worship Leader': 3,
-  'Singer': 4,
-  'Keyboardist': 2,
-  'Bassist': 1,
-  'Guitarist': 1,
-  'Drummer': 1,
-  'Usher': 2,
-  'OBS & Sound': 2,
-  'Multimedia': 2,
-};
+// We'll now use the maxLimit field from the ServiceRole model
+// instead of hardcoded limits
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -335,8 +325,12 @@ export function RosterBuilder() {
   const isRoleFull = (roleId: number, roleName: string) => {
     if (!selectedSunday) return false;
     
+    // Find the role in the roles array to get its maxLimit
+    const role = selectedSunday.roles.find(r => r.id === roleId);
+    if (!role) return false;
+    
     // Get the maximum allowed for this role (default to 1 if not specified)
-    const maxAllowed = ROLE_LIMITS[roleName] || 1;
+    const maxAllowed = role.maxLimit || 1;
     
     // Count how many of this role are already assigned (existing + pending assignments)
     let assignedCount = 0;
@@ -500,7 +494,10 @@ export function RosterBuilder() {
     const currentAssignedCount = selectedAssignments[roleId]?.length || 0;
     const existingDatabaseCount = selectedSunday?.assignments.filter(a => a.roleId === roleId).length || 0;
     const totalCurrentCount = currentAssignedCount + existingDatabaseCount;
-    const maxLimit = ROLE_LIMITS[roleName] || 1;
+    
+    // Find the role object to get its maxLimit
+    const role = selectedSunday?.roles.find(r => r.id === roleId);
+    const maxLimit = role?.maxLimit || 1;
     
     // Show warning when trying to exceed the limit
     if (totalCurrentCount >= maxLimit) {
@@ -1112,15 +1109,15 @@ export function RosterBuilder() {
                                       className="text-xs py-0 h-5"
                                     >
                                       {isRoleFull(role.id, role.name) ? (
-                                        <>Max {ROLE_LIMITS[role.name] || 1}</>
+                                        <>Max {role.maxLimit || 1}</>
                                       ) : (
-                                        <>Limit: {ROLE_LIMITS[role.name] || 1}</>
+                                        <>Limit: {role.maxLimit || 1}</>
                                       )}
                                     </Badge>
                                   </TooltipTrigger>
                                   <TooltipContent>
                                     <p className="text-xs">
-                                      Maximum {ROLE_LIMITS[role.name] || 1} {role.name}{ROLE_LIMITS[role.name] > 1 ? "s" : ""} allowed per service
+                                      Maximum {role.maxLimit || 1} {role.name}{(role.maxLimit || 1) > 1 ? "s" : ""} allowed per service
                                     </p>
                                   </TooltipContent>
                                 </Tooltip>
