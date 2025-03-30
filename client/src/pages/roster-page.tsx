@@ -112,6 +112,11 @@ export default function RosterPage() {
     enabled: true
   });
   
+  // Fetch service roles to ensure correct ordering
+  const { data: serviceRoles, isLoading: isLoadingServiceRoles } = useQuery<ServiceRole[]>({
+    queryKey: ["/api/service-roles"],
+  });
+  
   // Process availability data to determine which months have data
   useEffect(() => {
     if (availabilities && Array.isArray(availabilities)) {
@@ -209,7 +214,7 @@ export default function RosterPage() {
   };
 
   // Check if any data is still loading
-  if (isLoadingAvailability || isLoadingUsers || isLoadingSpecialDays) {
+  if (isLoadingAvailability || isLoadingUsers || isLoadingSpecialDays || isLoadingServiceRoles) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <ChurchLoader type="calendar" size="lg" text="Loading roster..." />
@@ -414,7 +419,9 @@ export default function RosterPage() {
         {sundays.map((sunday) => {
           const dateStr = format(sunday, "yyyy-MM-dd");
           const assignments = groupedAssignments[dateStr] || {};
-          const roleNames = Object.keys(assignments);
+          
+          // Get role names from assignments
+          const assignedRoleNames = Object.keys(assignments);
           
           // Check if this Sunday is a special day
           const specialDay = specialDays?.find(day => {
@@ -427,6 +434,13 @@ export default function RosterPage() {
             ? { borderColor: specialDay.color, borderWidth: '2px' } 
             : {};
           
+          // Create an ordered list of roles that exist in assignments
+          // First get all role names that have assignments for this date
+          // Then sort them according to the order in the serviceRoles array
+          const orderedRoles = serviceRoles
+            ?.filter(role => assignedRoleNames.includes(role.name))
+            .sort((a, b) => a.order - b.order) || [];
+            
           return (
             <div 
               key={dateStr} 
@@ -460,20 +474,20 @@ export default function RosterPage() {
                     <p className="text-sm text-muted-foreground">
                       {specialDay?.description && <span className="font-medium">{specialDay.description}</span>}
                       {specialDay?.description && " • "}
-                      {roleNames.length > 0 ? `${roleNames.length} roles assigned` : "No assignments"}
+                      {assignedRoleNames.length > 0 ? `${assignedRoleNames.length} roles assigned` : "No assignments"}
                     </p>
                   </div>
                 </div>
               </div>
               
               <div className="p-4">
-                {roleNames.length > 0 ? (
+                {assignedRoleNames.length > 0 ? (
                   <div className="space-y-4">
-                    {roleNames.map(roleName => (
-                      <div key={roleName} className="border rounded-md p-3">
-                        <h4 className="font-medium mb-2 text-sm text-primary">{roleName}</h4>
+                    {orderedRoles.map(role => (
+                      <div key={role.id} className="border rounded-md p-3">
+                        <h4 className="font-medium mb-2 text-sm text-primary">{role.name}</h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {assignments[roleName].map(user => (
+                          {assignments[role.name].map(user => (
                             <div 
                               key={user.id}
                               className="flex items-center gap-2 p-2 rounded-md bg-muted/50"
@@ -536,7 +550,9 @@ export default function RosterPage() {
               {sundays.map((sunday) => {
                 const dateStr = format(sunday, "yyyy-MM-dd");
                 const assignments = groupedAssignments[dateStr] || {};
-                const roleNames = Object.keys(assignments);
+                
+                // Get role names from assignments
+                const assignedRoleNames = Object.keys(assignments);
                 
                 // Check if this Sunday is a special day
                 const specialDay = specialDays?.find(day => {
@@ -550,6 +566,13 @@ export default function RosterPage() {
                       borderLeft: `4px solid ${specialDay.color}`,
                     } 
                   : {};
+                
+                // Create an ordered list of roles that exist in assignments
+                // First get all role names that have assignments for this date
+                // Then sort them according to the order in the serviceRoles array
+                const orderedRoles = serviceRoles
+                  ?.filter(role => assignedRoleNames.includes(role.name))
+                  .sort((a, b) => a.order - b.order) || [];
                 
                 return (
                   <TableRow key={dateStr} style={rowStyle}>
@@ -569,12 +592,12 @@ export default function RosterPage() {
                       ) : "Regular Sunday"}
                     </TableCell>
                     <TableCell>
-                      {roleNames.length > 0 ? (
+                      {assignedRoleNames.length > 0 ? (
                         <div className="space-y-1">
-                          {roleNames.map(roleName => (
-                            <div key={roleName} className="text-sm">
-                              <span className="font-medium text-primary">{roleName}:</span>{' '}
-                              {assignments[roleName]
+                          {orderedRoles.map(role => (
+                            <div key={role.id} className="text-sm">
+                              <span className="font-medium text-primary">{role.name}:</span>{' '}
+                              {assignments[role.name]
                                 .map(user => formatUserName(user))
                                 .join(", ")}
                             </div>
