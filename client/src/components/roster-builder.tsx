@@ -1019,7 +1019,7 @@ export function RosterBuilder() {
                   </CardHeader>
                   <CardContent className="p-4 pt-2">
                     <p className="text-xs text-muted-foreground">
-                      {sunday.availablePeople.length} people available
+                      {sunday.availablePeople.length} people
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {sunday.assignments.length} of {sunday.roles.length} roles assigned
@@ -1032,9 +1032,9 @@ export function RosterBuilder() {
             <Card>
               <CardContent className="p-4 text-center">
                 <Info className="h-12 w-12 mx-auto text-muted-foreground opacity-50 my-4" />
-                <p className="text-sm">No Sundays found with available people in this month.</p>
+                <p className="text-sm">No Sundays found in this month.</p>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Try another month or check if members have indicated their availability.
+                  Try another month or check your system calendar settings.
                 </p>
               </CardContent>
             </Card>
@@ -1218,7 +1218,7 @@ export function RosterBuilder() {
                         </div>
                         
                         {selectedSunday.availablePeople.length === 0 && (
-                          <p className="text-sm text-muted-foreground mt-2">No people available for this date.</p>
+                          <p className="text-sm text-muted-foreground mt-2">No members found in the system.</p>
                         )}
                       </div>
                     ))}
@@ -1234,7 +1234,7 @@ export function RosterBuilder() {
               </CardContent>
               <CardFooter>
                 <p className="text-xs text-muted-foreground">
-                  Note: People already assigned to other roles are shown with reduced opacity.
+                  Note: All church members are shown here for assignment. People already assigned to other roles are shown with reduced opacity.
                 </p>
               </CardFooter>
             </Card>
