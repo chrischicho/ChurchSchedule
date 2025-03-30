@@ -3,7 +3,27 @@
 
 All notable changes to deployments will be documented in this file.
 
-## [1.2.0] - 2025-03-30
+## [1.3.0] - 2025-03-30
+
+### Added
+- Service role drag-and-drop ordering
+- PDF generation improvements
+- Service role limits implementation
+- Notifications for roster assignments
+
+### Changed
+- Enhanced UI/UX for role management
+- Optimized roster builder performance
+- Improved error handling
+- Updated navigation menu structure
+
+### Fixed
+- Badge component ref forwarding
+- Dialog accessibility warnings
+- Roster finalization edge cases
+- Date handling in roster view
+
+## [1.2.0] - 2025-03-29
 
 ### Added
 - Email notification system for roster distribution
@@ -21,9 +41,9 @@ All notable changes to deployments will be documented in this file.
 - Authentication persistence issues
 - Dialog accessibility warnings
 - DOM nesting validation errors
-- Badge component ref forwarding
+- Badge component styling
 
-## [1.1.0] - 2025-03-29
+## [1.1.0] - 2025-03-28
 
 ### Added
 - Service role configuration system
