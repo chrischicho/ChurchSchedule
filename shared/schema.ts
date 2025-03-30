@@ -48,6 +48,7 @@ export const serviceRoles = pgTable("service_roles", {
   description: text("description"),
   order: integer("order").default(0).notNull(), // For ordering roles in the UI
   isActive: boolean("is_active").default(true).notNull(), // To enable/disable roles
+  maxLimit: integer("max_limit").default(1), // Maximum number of people allowed for this role (null means unlimited)
 });
 
 // Store roster assignments

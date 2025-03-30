@@ -55,6 +55,7 @@ const serviceRoleSchema = z.object({
   name: z.string().min(1, "Role name is required"),
   description: z.string().optional(),
   is_active: z.boolean().default(true),
+  maxLimit: z.number().min(1, "Limit must be at least 1").default(1),
 });
 
 type ServiceRoleFormValues = z.infer<typeof serviceRoleSchema>;
@@ -93,6 +94,7 @@ export function ServiceRolesManager() {
       name: '',
       description: '',
       is_active: true,
+      maxLimit: 1,
     },
   });
 
@@ -261,6 +263,7 @@ export function ServiceRolesManager() {
       name: role.name,
       description: role.description || '',
       is_active: role.isActive,
+      maxLimit: role.maxLimit || 1,
     });
     setIsDialogOpen(true);
   };
@@ -285,6 +288,7 @@ export function ServiceRolesManager() {
         name: '',
         description: '',
         is_active: true,
+        maxLimit: 1,
       });
     }
     setIsDialogOpen(open);
@@ -493,6 +497,32 @@ export function ServiceRolesManager() {
                         Inactive roles won't appear in the roster builder.
                       </FormDescription>
                     </div>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="maxLimit"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Maximum People</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        min={1} 
+                        placeholder="1" 
+                        {...field}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value);
+                          field.onChange(isNaN(value) ? 1 : Math.max(1, value));
+                        }}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Maximum number of people who can be assigned to this role per service.
+                    </FormDescription>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
